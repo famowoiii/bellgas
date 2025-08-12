@@ -1,8 +1,9 @@
-name: Apply File Blocks
+name: Apply File Blocks (debug)
 
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch: {}   # biar bisa dites manual
 
 permissions:
   contents: write
@@ -11,21 +12,34 @@ permissions:
 
 jobs:
   apply:
-    # hanya jalan jika komentarnya dari kamu dan mengandung /apply + blok file
-    if: ${{ github.event.comment.user.login == 'famowoiii' && contains(github.event.comment.body, '/apply') && contains(github.event.comment.body, '---BEGIN FILE:') }}
+    # jalan kalau dipicu manual, atau komentar mengandung /apply + BEGIN FILE
+    if: github.event_name == 'workflow_dispatch' || (contains(github.event.comment.body, '/apply') && contains(github.event.comment.body, '---BEGIN FILE:'))
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Dump event (debug)
+        run: |
+          echo "Actor: ${{ github.actor }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "${{ toJson(github.event) }}" > event.json
+          sed -n '1,120p' event.json
+
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Parse & write files from comment body
         run: |
+          echo "BODY >>>"
+          echo "${{ github.event.comment.body }}"
+          echo "<<< BODY"
           python3 - <<'PY'
           import os, re, pathlib, sys
-          body = os.environ['BODY']
+          body = os.environ.get('BODY','')
+          print("Body length:", len(body))
+          # cari blok: judul + newline + konten ... + END
           blocks = re.findall(r'---BEGIN FILE:\s*([^\n]+)\n(.*?)---END FILE---', body, flags=re.S)
+          print("Blocks found:", len(blocks))
           if not blocks:
-            print("No file blocks found.")
+            print("ERROR: No file blocks found. Pastikan formatnya tepat & komentar (bukan body issue).")
             sys.exit(1)
           for rel, content in blocks:
             rel = rel.strip()
@@ -37,12 +51,12 @@ jobs:
         env:
           BODY: ${{ github.event.comment.body }}
 
-      - name: Create Pull Request with changes
+      - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
         with:
           commit-message: "chore: apply files from /apply comment"
-          branch: bot/claude-${{ github.run_id }}
+          branch: bot/apply-${{ github.run_id }}
           base: main
-          title: "feat: apply files from /apply (issue #${{ github.event.issue.number }})"
-          body: "Changes generated from a comment by @${{ github.event.comment.user.login }}.\n\nSource issue: #${{ github.event.issue.number }}"
+          title: "feat: apply files from /apply"
+          body: "Changes generated automatically from a comment.\n\nEvent: ${{ github.event_name }}\nActor: @${{ github.actor }}"
           labels: automated
