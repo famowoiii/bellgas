@@ -1,0 +1,48 @@
+name: Apply File Blocks
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  apply:
+    # hanya jalan jika komentarnya dari kamu dan mengandung /apply + blok file
+    if: ${{ github.event.comment.user.login == 'famowoiii' && contains(github.event.comment.body, '/apply') && contains(github.event.comment.body, '---BEGIN FILE:') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse & write files from comment body
+        run: |
+          python3 - <<'PY'
+          import os, re, pathlib, sys
+          body = os.environ['BODY']
+          blocks = re.findall(r'---BEGIN FILE:\s*([^\n]+)\n(.*?)---END FILE---', body, flags=re.S)
+          if not blocks:
+            print("No file blocks found.")
+            sys.exit(1)
+          for rel, content in blocks:
+            rel = rel.strip()
+            p = pathlib.Path(rel)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content, encoding='utf-8')
+            print("Wrote", rel)
+          PY
+        env:
+          BODY: ${{ github.event.comment.body }}
+
+      - name: Create Pull Request with changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore: apply files from /apply comment"
+          branch: bot/claude-${{ github.run_id }}
+          base: main
+          title: "feat: apply files from /apply (issue #${{ github.event.issue.number }})"
+          body: "Changes generated from a comment by @${{ github.event.comment.user.login }}.\n\nSource issue: #${{ github.event.issue.number }}"
+          labels: automated
