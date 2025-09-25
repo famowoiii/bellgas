@@ -16,8 +16,8 @@ Your BellGas Laravel application uses Stripe for payment processing. To enable c
 ### 2. Get Your API Keys
 1. Log into your Stripe Dashboard
 2. Go to [Developers > API keys](https://dashboard.stripe.com/test/apikeys)
-3. Copy your **Publishable key** (starts with `pk_test_`)
-4. Copy your **Secret key** (starts with `sk_test_`)
+3. Copy your **Publishable key** (starts with `pk_test_YOUR_STRIPE_PUBLISHABLE_KEY_HERE`)
+4. Copy your **Secret key** (starts with `sk_test_YOUR_STRIPE_SECRET_KEY_HERE`)
 
 ### 3. Configure Your Environment
 1. Open your `.env` file in the project root
@@ -25,8 +25,8 @@ Your BellGas Laravel application uses Stripe for payment processing. To enable c
 
 ```env
 # Stripe Configuration
-STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_ACTUAL_PUBLISHABLE_KEY_HERE
-STRIPE_SECRET_KEY=sk_test_YOUR_ACTUAL_SECRET_KEY_HERE
+STRIPE_PUBLISHABLE_KEY=pk_test_YOUR_STRIPE_PUBLISHABLE_KEY_HERE
+STRIPE_SECRET_KEY=sk_test_YOUR_STRIPE_SECRET_KEY_HERE
 ```
 
 ### 4. Test the Configuration
@@ -46,7 +46,7 @@ For production environments, you may want to set up webhooks:
 4. Copy the webhook secret and add to `.env`:
 
 ```env
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_STRIPE_WEBHOOK_SECRET_HERE
 ```
 
 ## Testing Payment Methods
@@ -63,7 +63,7 @@ Stripe provides test card numbers for development:
 
 ⚠️ **Important**: 
 - Never commit real API keys to version control
-- Use test keys (starting with `pk_test_` and `sk_test_`) for development
+- Use test keys (starting with `pk_test_YOUR_STRIPE_PUBLISHABLE_KEY_HERE` and `sk_test_YOUR_STRIPE_SECRET_KEY_HERE`) for development
 - Use live keys (starting with `pk_live_` and `sk_live_`) only in production
 - Keep your secret keys secure and never expose them in client-side code
 
