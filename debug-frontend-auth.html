@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Frontend Auth</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Debug Frontend Authentication</h1>
+    <div id="results"></div>
+
+    <script>
+        async function debugAuth() {
+            const results = document.getElementById('results');
+            
+            function log(message) {
+                console.log(message);
+                results.innerHTML += '<p>' + message + '</p>';
+            }
+
+            try {
+                log('1. Testing login...');
+                const loginResponse = await axios.post('http://localhost:8000/api/auth/login', {
+                    email: 'stripetester@bellgas.com',
+                    password: 'password123'
+                });
+                
+                if (loginResponse.data.access_token) {
+                    const token = loginResponse.data.access_token;
+                    log('✅ Login successful, token: ' + token.substring(0, 20) + '...');
+                    
+                    // Store in localStorage
+                    localStorage.setItem('access_token', token);
+                    log('✅ Token stored in localStorage');
+                    
+                    // Set axios header
+                    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                    log('✅ Axios header set');
+                    
+                    // Test /me endpoint
+                    log('2. Testing /api/auth/me...');
+                    const meResponse = await axios.get('http://localhost:8000/api/auth/me');
+                    log('✅ /me endpoint works: ' + JSON.stringify(meResponse.data.user));
+                    
+                    // Test /cart endpoint
+                    log('3. Testing /api/cart...');
+                    const cartResponse = await axios.get('http://localhost:8000/api/cart');
+                    log('✅ /cart endpoint works: ' + JSON.stringify(cartResponse.data.data));
+                    
+                    // Test add to cart
+                    log('4. Testing add to cart...');
+                    const addCartResponse = await axios.post('http://localhost:8000/api/cart', {
+                        product_variant_id: 1,
+                        quantity: 1,
+                        is_preorder: false,
+                        notes: 'Debug test'
+                    });
+                    log('✅ Add to cart works: ' + JSON.stringify(addCartResponse.data));
+                    
+                } else {
+                    log('❌ Login failed: no token received');
+                }
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                log('Response: ' + JSON.stringify(error.response?.data));
+            }
+        }
+
+        // Auto run on page load
+        debugAuth();
+    </script>
+</body>
+</html>

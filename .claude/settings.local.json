@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(npx playwright:*)",
+      "Bash(php:*)",
+      "Bash(composer install:*)",
+      "Bash(copy .env.example .env)",
+      "Bash(curl:*)",
+      "Bash(powershell:*)",
+      "Bash(grep:*)",
+      "Bash(killall:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

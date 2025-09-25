@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Orders Page</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <div id="test-results"></div>
+    
+    <script>
+        // Test if the orders page loads correctly
+        async function testOrdersPage() {
+            const results = document.getElementById('test-results');
+            
+            function log(message, color = 'black') {
+                console.log(message);
+                results.innerHTML += `<p style="color: ${color};">${message}</p>`;
+            }
+            
+            try {
+                log('🔍 Testing My Orders page...', 'blue');
+                
+                // Simulate login first
+                const loginData = {
+                    email: 'stripetester@bellgas.com',
+                    password: 'password123'
+                };
+                
+                log('1. Logging in...');
+                const loginResponse = await axios.post('http://localhost:8000/api/auth/login', loginData);
+                const token = loginResponse.data.access_token;
+                log('✅ Login successful', 'green');
+                
+                // Set authorization header
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                
+                // Test orders API
+                log('2. Testing orders API...');
+                const ordersResponse = await axios.get('http://localhost:8000/api/orders');
+                log(`✅ Orders API works: ${ordersResponse.data.data.length} orders`, 'green');
+                
+                // Test page fetch
+                log('3. Testing page rendering...');
+                const pageResponse = await fetch('http://localhost:8000/orders');
+                const pageText = await pageResponse.text();
+                
+                // Check if JavaScript is included correctly
+                if (pageText.includes('function ordersPage()')) {
+                    log('✅ JavaScript function found in page', 'green');
+                } else {
+                    log('❌ JavaScript function NOT found in page', 'red');
+                }
+                
+                // Check for any obvious syntax errors
+                if (pageText.includes('showNotification')) {
+                    log('✅ showNotification function found', 'green');
+                } else {
+                    log('❌ showNotification function NOT found', 'red');
+                }
+                
+                // Look for the problematic content
+                const problematicContent = pageText.match(/printWindow\.document\.close.*?}\s*}/);
+                if (problematicContent) {
+                    log('⚠️ Found potentially problematic JavaScript content', 'orange');
+                    log('Content: ' + problematicContent[0].substring(0, 100) + '...', 'gray');
+                } else {
+                    log('✅ No obvious JavaScript issues found', 'green');
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'red');
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Auto-run test
+        document.addEventListener('DOMContentLoaded', testOrdersPage);
+    </script>
+</body>
+</html>

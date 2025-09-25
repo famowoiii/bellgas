@@ -1,0 +1,57 @@
+{
+    "$schema": "https://json.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "test": "node run-tests.js",
+        "test:e2e": "playwright test tests/playwright/e2e --reporter=html",
+        "test:api": "playwright test tests/playwright/api --reporter=html",
+        "test:auth": "playwright test tests/playwright/e2e/auth.spec.js --reporter=list",
+        "test:products": "playwright test tests/playwright/e2e/products.spec.js --reporter=list",
+        "test:cart": "playwright test tests/playwright/e2e/cart.spec.js --reporter=list",
+        "test:checkout": "playwright test tests/playwright/e2e/checkout.spec.js --reporter=list",
+        "test:home": "playwright test tests/playwright/e2e/home.spec.js --reporter=list",
+        "test:debug": "playwright test --debug",
+        "test:headed": "playwright test --headed",
+        "test:chromium": "playwright test --project=chromium",
+        "test:firefox": "playwright test --project=firefox",
+        "test:webkit": "playwright test --project=webkit",
+        "test:mobile": "playwright test --project=\"Mobile Chrome\"",
+        "test:quick": "playwright test --grep=\"should load|should display\" --reporter=list",
+        "test:smoke": "playwright test tests/playwright/e2e/home.spec.js tests/playwright/api/auth-api.spec.js --reporter=list",
+        "report": "playwright show-report",
+        "install:browsers": "playwright install"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.55.0",
+        "@tailwindcss/vite": "^4.0.0",
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0.0",
+        "node-fetch": "^3.3.2",
+        "playwright": "^1.55.0",
+        "tailwindcss": "^4.0.0",
+        "vite": "^7.0.4"
+    },
+    "name": "bellgas-laravel",
+    "version": "1.0.0",
+    "description": "BellGas Laravel E-commerce Application with Comprehensive Playwright Testing",
+    "main": "vite.config.js",
+    "directories": {
+        "doc": "docs",
+        "test": "tests"
+    },
+    "keywords": [
+        "laravel",
+        "e-commerce",
+        "playwright",
+        "testing",
+        "gas-delivery",
+        "stripe",
+        "jwt-auth"
+    ],
+    "author": "",
+    "license": "ISC"
+}

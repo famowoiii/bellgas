@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Cart Fix</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Cart Fix Verification Test</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        async function testCartFix() {
+            const results = document.getElementById('test-results');
+            
+            function log(message, type = 'info') {
+                console.log(message);
+                const div = document.createElement('div');
+                div.className = `log ${type}`;
+                div.textContent = message;
+                results.appendChild(div);
+            }
+            
+            try {
+                log('🔍 Testing Cart Persistence Fix...', 'info');
+                
+                // Step 1: Login
+                log('1. Logging in...', 'info');
+                const loginData = { email: 'stripetester@bellgas.com', password: 'password123' };
+                const loginResponse = await axios.post('http://localhost:8000/api/auth/login', loginData);
+                const token = loginResponse.data.access_token;
+                axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+                log('✅ Login successful', 'success');
+                
+                // Step 2: Add item to cart
+                log('2. Adding item to cart...', 'info');
+                const cartResponse = await axios.post('http://localhost:8000/api/cart', {
+                    product_variant_id: 1,
+                    quantity: 2
+                });
+                log(`✅ Item added to cart: ${cartResponse.data.message}`, 'success');
+                
+                // Step 3: Verify cart has items
+                log('3. Checking cart contents...', 'info');
+                const cartCheckResponse = await axios.get('http://localhost:8000/api/cart');
+                const cartItems = cartCheckResponse.data.data.items;
+                log(`✅ Cart has ${cartItems.length} items`, 'success');
+                
+                if (cartItems.length === 0) {
+                    throw new Error('Cart is empty after adding items');
+                }
+                
+                // Step 4: Test multiple cart fetches (simulating page navigation)
+                log('4. Testing multiple cart API calls (simulating navigation)...', 'info');
+                
+                for (let i = 1; i <= 3; i++) {
+                    const navResponse = await axios.get('http://localhost:8000/api/cart');
+                    const navItems = navResponse.data.data.items;
+                    log(`   Navigation ${i}: Cart has ${navItems.length} items`, navItems.length > 0 ? 'success' : 'error');
+                    
+                    if (navItems.length === 0) {
+                        throw new Error(`Cart became empty on navigation ${i}`);
+                    }
+                }
+                
+                // Step 5: Test auth persistence
+                log('5. Testing auth API...', 'info');
+                const authResponse = await axios.get('http://localhost:8000/api/auth/me');
+                log(`✅ Auth works: ${authResponse.data.user.email}`, 'success');
+                
+                log('🎉 All tests passed! Cart persistence fix is working.', 'success');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                if (error.response) {
+                    log(`   Status: ${error.response.status}`, 'error');
+                    log(`   Data: ${JSON.stringify(error.response.data)}`, 'error');
+                }
+                console.error('Full error:', error);
+            }
+        }
+        
+        // Auto-run test
+        document.addEventListener('DOMContentLoaded', testCartFix);
+    </script>
+</body>
+</html>

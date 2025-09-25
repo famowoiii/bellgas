@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug JWT & Cart</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.3.4/dist/axios.min.js"></script>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .debug { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+        .success { color: green; }
+        .error { color: red; }
+        button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 JWT & Cart Debug Tool</h1>
+
+    <div class="debug">
+        <h3>Step 1: Login</h3>
+        <button onclick="doLogin()">🔑 Quick Login Customer</button>
+        <div id="loginResult"></div>
+    </div>
+
+    <div class="debug">
+        <h3>Step 2: Check Token</h3>
+        <button onclick="checkToken()">🔍 Check JWT Token</button>
+        <div id="tokenResult"></div>
+    </div>
+
+    <div class="debug">
+        <h3>Step 3: Test Cart API</h3>
+        <button onclick="testCartAPI()">🛒 Test Get Cart</button>
+        <button onclick="addToCart()">➕ Add Test Item</button>
+        <div id="cartResult"></div>
+    </div>
+
+    <div class="debug">
+        <h3>Step 4: Force Reload</h3>
+        <button onclick="forceReloadCart()">🔄 Force Reload Cart</button>
+        <div id="reloadResult"></div>
+    </div>
+
+    <script>
+        // Debug variables
+        let jwtToken = '';
+
+        function log(message, type = 'info') {
+            console.log(message);
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            return `<p style="color: ${color};">${message}</p>`;
+        }
+
+        async function doLogin() {
+            const resultDiv = document.getElementById('loginResult');
+            resultDiv.innerHTML = log('🔄 Attempting login...');
+
+            try {
+                // First login
+                const response = await fetch('/quick-login/customer');
+
+                if (response.redirected) {
+                    resultDiv.innerHTML = log('✅ Login successful - redirected to: ' + response.url, 'success');
+
+                    // Get token from debug endpoint
+                    const tokenResponse = await fetch('/debug-token');
+                    const tokenData = await tokenResponse.json();
+
+                    jwtToken = tokenData.session_jwt_token || tokenData.session_frontend_token;
+
+                    if (jwtToken) {
+                        resultDiv.innerHTML += log('✅ JWT Token obtained: ' + jwtToken.substring(0, 30) + '...', 'success');
+                        // Setup axios
+                        axios.defaults.headers.common['Authorization'] = 'Bearer ' + jwtToken;
+                    } else {
+                        resultDiv.innerHTML += log('❌ No JWT token in response', 'error');
+                    }
+                } else {
+                    resultDiv.innerHTML = log('❌ Login failed - no redirect', 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = log('❌ Login error: ' + error.message, 'error');
+            }
+        }
+
+        async function checkToken() {
+            const resultDiv = document.getElementById('tokenResult');
+            resultDiv.innerHTML = log('🔍 Checking token status...');
+
+            try {
+                const response = await fetch('/debug-token');
+                const data = await response.json();
+
+                resultDiv.innerHTML = log('📊 Token Status:', 'success');
+                resultDiv.innerHTML += log('  - JWT Token: ' + (data.session_jwt_token ? 'EXISTS (' + data.session_jwt_token.substring(0, 20) + '...)' : 'MISSING'));
+                resultDiv.innerHTML += log('  - Frontend Token: ' + (data.session_frontend_token ? 'EXISTS' : 'MISSING'));
+                resultDiv.innerHTML += log('  - Authenticated: ' + data.session_authenticated);
+                resultDiv.innerHTML += log('  - Auth Check: ' + data.auth_check);
+                resultDiv.innerHTML += log('  - User Email: ' + (data.session_user_data?.email || 'N/A'));
+
+                // Update local token
+                jwtToken = data.session_jwt_token || data.session_frontend_token || '';
+                if (jwtToken) {
+                    axios.defaults.headers.common['Authorization'] = 'Bearer ' + jwtToken;
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML = log('❌ Token check error: ' + error.message, 'error');
+            }
+        }
+
+        async function testCartAPI() {
+            const resultDiv = document.getElementById('cartResult');
+            resultDiv.innerHTML = log('🛒 Testing Cart API...');
+
+            if (!jwtToken) {
+                resultDiv.innerHTML += log('❌ No JWT token available - run login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.get('/api/cart', {
+                    headers: {
+                        'Authorization': 'Bearer ' + jwtToken,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (response.data.success) {
+                    const items = response.data.data.items || [];
+                    resultDiv.innerHTML += log(`✅ Cart API Success - ${items.length} items, Total: $${response.data.data.total}`, 'success');
+
+                    items.forEach((item, index) => {
+                        resultDiv.innerHTML += log(`  Item ${index + 1}: ${item.productVariant?.product?.name} - Qty: ${item.quantity} - $${item.total}`);
+                    });
+                } else {
+                    resultDiv.innerHTML += log('❌ Cart API returned error: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML += log('❌ Cart API error: ' + (error.response?.data?.message || error.message), 'error');
+                resultDiv.innerHTML += log('  Status: ' + (error.response?.status || 'Unknown'));
+            }
+        }
+
+        async function addToCart() {
+            const resultDiv = document.getElementById('cartResult');
+            resultDiv.innerHTML = log('➕ Adding test item to cart...');
+
+            if (!jwtToken) {
+                resultDiv.innerHTML += log('❌ No JWT token available', 'error');
+                return;
+            }
+
+            try {
+                const response = await axios.post('/api/cart', {
+                    product_variant_id: 1,
+                    quantity: 1
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + jwtToken,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.data.success) {
+                    resultDiv.innerHTML += log('✅ Item added to cart successfully!', 'success');
+                    resultDiv.innerHTML += log('  Product: ' + response.data.data.productVariant?.product?.name);
+                    resultDiv.innerHTML += log('  Variant: ' + response.data.data.productVariant?.name);
+                    resultDiv.innerHTML += log('  Price: $' + response.data.data.total);
+                } else {
+                    resultDiv.innerHTML += log('❌ Add to cart failed: ' + response.data.message, 'error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML += log('❌ Add to cart error: ' + (error.response?.data?.message || error.message), 'error');
+            }
+        }
+
+        async function forceReloadCart() {
+            const resultDiv = document.getElementById('reloadResult');
+            resultDiv.innerHTML = log('🔄 Force reloading cart...');
+
+            // Simulate window.app.loadCart if available
+            if (window.app && window.app.loadCart) {
+                try {
+                    await window.app.loadCart(true);
+                    resultDiv.innerHTML += log('✅ window.app.loadCart completed', 'success');
+                    resultDiv.innerHTML += log('  Cart items: ' + (window.app.cartItems?.length || 0));
+                    resultDiv.innerHTML += log('  Cart total: ' + (window.app.cartTotal || 0));
+                } catch (error) {
+                    resultDiv.innerHTML += log('❌ window.app.loadCart error: ' + error.message, 'error');
+                }
+            } else {
+                resultDiv.innerHTML += log('⚠️ window.app not available - testing direct API call');
+                await testCartAPI();
+            }
+        }
+
+        // Auto-check on load
+        window.addEventListener('load', function() {
+            log('🚀 Debug tool loaded');
+            checkToken();
+        });
+    </script>
+</body>
+</html>

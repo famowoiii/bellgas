@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear All Tokens - BellGas</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .container { max-width: 500px; margin: 0 auto; }
+        .success { color: green; background: #f0f8ff; padding: 20px; border-radius: 5px; }
+        .button {
+            background: #dc2626; color: white; padding: 10px 20px;
+            border: none; border-radius: 5px; cursor: pointer; margin: 10px;
+        }
+        .button:hover { background: #b91c1c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear All Authentication Tokens</h1>
+        <p>This will clear all expired JWT tokens and authentication data from your browser.</p>
+
+        <button class="button" onclick="clearAllTokens()">Clear All Tokens</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function clearAllTokens() {
+            try {
+                // Clear all possible token storage keys
+                const tokenKeys = [
+                    'access_token',
+                    'jwt_token',
+                    'frontend_token',
+                    'user_data',
+                    'authenticated'
+                ];
+
+                tokenKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    sessionStorage.removeItem(key);
+                });
+
+                // Clear any axios authorization headers
+                if (typeof axios !== 'undefined') {
+                    delete axios.defaults.headers.common['Authorization'];
+                }
+
+                // Clear session storage completely
+                sessionStorage.clear();
+
+                document.getElementById('result').innerHTML = `
+                    <div class="success">
+                        <h3>✅ Tokens Cleared Successfully!</h3>
+                        <p>All authentication tokens have been removed from your browser.</p>
+                        <p>You can now go back to the login page.</p>
+                        <a href="/login" style="color: #2563eb; text-decoration: none;">← Back to Login</a>
+                    </div>
+                `;
+
+                // Automatically redirect after 3 seconds
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 3000);
+
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div style="color: red; background: #ffeee6; padding: 20px; border-radius: 5px;">
+                        <h3>❌ Error occurred:</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-clear on page load if URL parameter is present
+        if (window.location.search.includes('auto=true')) {
+            clearAllTokens();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e4]:
+      - link " BellGas" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7] [cursor=pointer]: 
+        - generic [ref=e8] [cursor=pointer]: BellGas
+      - generic [ref=e9]:
+        - link "Products" [ref=e10] [cursor=pointer]:
+          - /url: /products
+        - link "About" [ref=e11] [cursor=pointer]:
+          - /url: /about
+        - link "Contact" [ref=e12] [cursor=pointer]:
+          - /url: /contact
+        - button " 1" [ref=e14] [cursor=pointer]:
+          - generic [ref=e15] [cursor=pointer]: 
+          - generic [ref=e16] [cursor=pointer]: "1"
+        - text:  
+        - generic [ref=e17]:
+          - button " kimpet " [ref=e18] [cursor=pointer]:
+            - generic [ref=e19] [cursor=pointer]: 
+            - generic [ref=e20] [cursor=pointer]: kimpet
+            - generic [ref=e21] [cursor=pointer]: 
+          - text:          
+      - text: 
+  - main [ref=e22]:
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - heading "My Orders" [level=1] [ref=e26]
+        - paragraph [ref=e27]: Track and manage your LPG orders
+      - generic [ref=e28]:
+        - text: 
+        - generic [ref=e29]:
+          - generic [ref=e30] [cursor=pointer]:
+            - generic [ref=e31] [cursor=pointer]:
+              - generic [ref=e32] [cursor=pointer]:
+                - 'heading "Order #ORD-68D241E555401" [level=3] [ref=e33] [cursor=pointer]'
+                - paragraph [ref=e34] [cursor=pointer]: Placed on 23 Sept 2025
+              - generic [ref=e35] [cursor=pointer]:
+                - generic [ref=e36] [cursor=pointer]: PENDING
+                - generic [ref=e37] [cursor=pointer]: $25.50
+            - generic [ref=e38] [cursor=pointer]:
+              - generic [ref=e39] [cursor=pointer]:
+                - generic [ref=e40] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e41] [cursor=pointer]:
+            - generic [ref=e42] [cursor=pointer]:
+              - generic [ref=e43] [cursor=pointer]:
+                - 'heading "Order #BG-JCEOCBAQ" [level=3] [ref=e44] [cursor=pointer]'
+                - paragraph [ref=e45] [cursor=pointer]: Placed on 19 Sept 2025
+              - generic [ref=e46] [cursor=pointer]:
+                - generic [ref=e47] [cursor=pointer]: DONE
+                - generic [ref=e48] [cursor=pointer]: $129.95
+            - generic [ref=e49] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e50] [cursor=pointer]
+              - generic [ref=e51] [cursor=pointer]:
+                - generic [ref=e52] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e53] [cursor=pointer]: $129.95
+            - generic [ref=e54] [cursor=pointer]:
+              - generic [ref=e55] [cursor=pointer]:
+                - generic [ref=e56] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e57] [cursor=pointer]:
+            - generic [ref=e58] [cursor=pointer]:
+              - generic [ref=e59] [cursor=pointer]:
+                - 'heading "Order #BG-ZUFFFYPV" [level=3] [ref=e60] [cursor=pointer]'
+                - paragraph [ref=e61] [cursor=pointer]: Placed on 19 Sept 2025
+              - generic [ref=e62] [cursor=pointer]:
+                - generic [ref=e63] [cursor=pointer]: WAITING_FOR_PICKUP
+                - generic [ref=e64] [cursor=pointer]: $122.90
+            - generic [ref=e65] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e66] [cursor=pointer]
+              - generic [ref=e67] [cursor=pointer]:
+                - generic [ref=e68] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e69] [cursor=pointer]: $89.95
+              - generic [ref=e70] [cursor=pointer]:
+                - generic [ref=e71] [cursor=pointer]: 1x LPG Gas Refill
+                - generic [ref=e72] [cursor=pointer]: $32.95
+            - generic [ref=e73] [cursor=pointer]:
+              - generic [ref=e74] [cursor=pointer]:
+                - generic [ref=e75] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e76] [cursor=pointer]:
+            - generic [ref=e77] [cursor=pointer]:
+              - generic [ref=e78] [cursor=pointer]:
+                - 'heading "Order #BG-7SMRVI5I" [level=3] [ref=e79] [cursor=pointer]'
+                - paragraph [ref=e80] [cursor=pointer]: Placed on 19 Sept 2025
+              - generic [ref=e81] [cursor=pointer]:
+                - generic [ref=e82] [cursor=pointer]: PROCESSED
+                - generic [ref=e83] [cursor=pointer]: $32.95
+            - generic [ref=e84] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e85] [cursor=pointer]
+              - generic [ref=e86] [cursor=pointer]:
+                - generic [ref=e87] [cursor=pointer]: 1x LPG Gas Refill
+                - generic [ref=e88] [cursor=pointer]: $32.95
+            - generic [ref=e89] [cursor=pointer]:
+              - generic [ref=e90] [cursor=pointer]:
+                - generic [ref=e91] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e92] [cursor=pointer]:
+            - generic [ref=e93] [cursor=pointer]:
+              - generic [ref=e94] [cursor=pointer]:
+                - 'heading "Order #BG-CSUBASIS" [level=3] [ref=e95] [cursor=pointer]'
+                - paragraph [ref=e96] [cursor=pointer]: Placed on 19 Sept 2025
+              - generic [ref=e97] [cursor=pointer]:
+                - generic [ref=e98] [cursor=pointer]: PENDING
+                - generic [ref=e99] [cursor=pointer]: $187.45
+            - generic [ref=e100] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e101] [cursor=pointer]
+              - generic [ref=e102] [cursor=pointer]:
+                - generic [ref=e103] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e104] [cursor=pointer]: $129.95
+            - generic [ref=e105] [cursor=pointer]:
+              - generic [ref=e106] [cursor=pointer]:
+                - generic [ref=e107] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e108] [cursor=pointer]:
+            - generic [ref=e109] [cursor=pointer]:
+              - generic [ref=e110] [cursor=pointer]:
+                - 'heading "Order #BG-UKAL1BHZ" [level=3] [ref=e111] [cursor=pointer]'
+                - paragraph [ref=e112] [cursor=pointer]: Placed on 18 Sept 2025
+              - generic [ref=e113] [cursor=pointer]:
+                - generic [ref=e114] [cursor=pointer]: PENDING
+                - generic [ref=e115] [cursor=pointer]: $22.00
+            - generic [ref=e116] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e117] [cursor=pointer]
+              - generic [ref=e118] [cursor=pointer]:
+                - generic [ref=e119] [cursor=pointer]: 1x gas terus
+                - generic [ref=e120] [cursor=pointer]: $22.00
+            - generic [ref=e121] [cursor=pointer]:
+              - generic [ref=e122] [cursor=pointer]:
+                - generic [ref=e123] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e124] [cursor=pointer]:
+            - generic [ref=e125] [cursor=pointer]:
+              - generic [ref=e126] [cursor=pointer]:
+                - 'heading "Order #BG-UII7OKO6" [level=3] [ref=e127] [cursor=pointer]'
+                - paragraph [ref=e128] [cursor=pointer]: Placed on 18 Sept 2025
+              - generic [ref=e129] [cursor=pointer]:
+                - generic [ref=e130] [cursor=pointer]: PROCESSED
+                - generic [ref=e131] [cursor=pointer]: $66.00
+            - generic [ref=e132] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e133] [cursor=pointer]
+              - generic [ref=e134] [cursor=pointer]:
+                - generic [ref=e135] [cursor=pointer]: 3x gas terus
+                - generic [ref=e136] [cursor=pointer]: $66.00
+            - generic [ref=e137] [cursor=pointer]:
+              - generic [ref=e138] [cursor=pointer]:
+                - generic [ref=e139] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e140] [cursor=pointer]:
+            - generic [ref=e141] [cursor=pointer]:
+              - generic [ref=e142] [cursor=pointer]:
+                - 'heading "Order #BG-4QMDQPOB" [level=3] [ref=e143] [cursor=pointer]'
+                - paragraph [ref=e144] [cursor=pointer]: Placed on 18 Sept 2025
+              - generic [ref=e145] [cursor=pointer]:
+                - generic [ref=e146] [cursor=pointer]: ON_DELIVERY
+                - generic [ref=e147] [cursor=pointer]: $187.45
+            - generic [ref=e148] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e149] [cursor=pointer]
+              - generic [ref=e150] [cursor=pointer]:
+                - generic [ref=e151] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e152] [cursor=pointer]: $129.95
+            - generic [ref=e153] [cursor=pointer]:
+              - generic [ref=e154] [cursor=pointer]:
+                - generic [ref=e155] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e156] [cursor=pointer]:
+            - generic [ref=e157] [cursor=pointer]:
+              - generic [ref=e158] [cursor=pointer]:
+                - 'heading "Order #BG-CBI8JAG8" [level=3] [ref=e159] [cursor=pointer]'
+                - paragraph [ref=e160] [cursor=pointer]: Placed on 18 Sept 2025
+              - generic [ref=e161] [cursor=pointer]:
+                - generic [ref=e162] [cursor=pointer]: DONE
+                - generic [ref=e163] [cursor=pointer]: $129.95
+            - generic [ref=e164] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e165] [cursor=pointer]
+              - generic [ref=e166] [cursor=pointer]:
+                - generic [ref=e167] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e168] [cursor=pointer]: $129.95
+            - generic [ref=e169] [cursor=pointer]:
+              - generic [ref=e170] [cursor=pointer]:
+                - generic [ref=e171] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+          - generic [ref=e172] [cursor=pointer]:
+            - generic [ref=e173] [cursor=pointer]:
+              - generic [ref=e174] [cursor=pointer]:
+                - 'heading "Order #BG-5FXMD4LO" [level=3] [ref=e175] [cursor=pointer]'
+                - paragraph [ref=e176] [cursor=pointer]: Placed on 17 Sept 2025
+              - generic [ref=e177] [cursor=pointer]:
+                - generic [ref=e178] [cursor=pointer]: DONE
+                - generic [ref=e179] [cursor=pointer]: $89.95
+            - generic [ref=e180] [cursor=pointer]:
+              - heading "Items:" [level=4] [ref=e181] [cursor=pointer]
+              - generic [ref=e182] [cursor=pointer]:
+                - generic [ref=e183] [cursor=pointer]: 1x LPG Full Tank
+                - generic [ref=e184] [cursor=pointer]: $89.95
+            - generic [ref=e185] [cursor=pointer]:
+              - generic [ref=e186] [cursor=pointer]:
+                - generic [ref=e187] [cursor=pointer]: 
+                - text: Click to view details
+              - generic:  
+  - contentinfo [ref=e188]:
+    - generic [ref=e189]:
+      - generic [ref=e190]:
+        - generic [ref=e191]:
+          - generic [ref=e192]:
+            - generic [ref=e193]: 
+            - generic [ref=e194]: BellGas
+          - paragraph [ref=e195]: Premium LPG services for your home and business needs.
+        - generic [ref=e196]:
+          - heading "Quick Links" [level=3] [ref=e197]
+          - list [ref=e198]:
+            - listitem [ref=e199]:
+              - link "Products" [ref=e200] [cursor=pointer]:
+                - /url: /products
+            - listitem [ref=e201]:
+              - link "About Us" [ref=e202] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e203]:
+              - link "Contact" [ref=e204] [cursor=pointer]:
+                - /url: /contact
+        - generic [ref=e205]:
+          - heading "Support" [level=3] [ref=e206]
+          - list [ref=e207]:
+            - listitem [ref=e208]:
+              - link "Terms of Service" [ref=e209] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e210]:
+              - link "Privacy Policy" [ref=e211] [cursor=pointer]:
+                - /url: /privacy
+        - generic [ref=e212]:
+          - heading "Contact Info" [level=3] [ref=e213]
+          - generic [ref=e214]:
+            - paragraph [ref=e215]:
+              - generic [ref=e216]: 
+              - text: +61 123 456 789
+            - paragraph [ref=e217]:
+              - generic [ref=e218]: 
+              - text: info@bellgas.com.au
+      - paragraph [ref=e220]: © 2024 BellGas. All rights reserved.
+  - text:       +  
+```

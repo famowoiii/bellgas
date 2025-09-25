@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Add to Cart</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div style="padding: 20px; font-family: Arial, sans-serif;">
+        <h1>Debug Add to Cart</h1>
+
+        <div style="background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 8px;">
+            <h3>Authentication Status</h3>
+            <p id="authStatus">Checking...</p>
+        </div>
+
+        <div style="background: #e8f4f8; padding: 15px; margin: 10px 0; border-radius: 8px;">
+            <h3>Test Add to Cart</h3>
+            <button onclick="testAddToCart()" style="background: #007cba; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+                Test Add to Cart (Product ID: 1, Variant ID: 1)
+            </button>
+        </div>
+
+        <div style="background: #f8f8f8; padding: 15px; margin: 10px 0; border-radius: 8px;">
+            <h3>Console Output</h3>
+            <div id="output" style="background: white; padding: 10px; border: 1px solid #ddd; min-height: 200px; font-family: monospace; font-size: 12px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Override console.log to also display in the page
+        const originalLog = console.log;
+        const output = document.getElementById('output');
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ');
+            output.innerHTML += '<div>' + message + '</div>';
+            output.scrollTop = output.scrollHeight;
+        };
+
+        // Check authentication status
+        async function checkAuth() {
+            try {
+                const response = await fetch('/debug-session');
+                const data = await response.json();
+                const authStatus = document.getElementById('authStatus');
+
+                if (data.authenticated && data.jwt_token) {
+                    authStatus.innerHTML = `✅ Authenticated as: ${data.user_data?.email || 'Unknown'}<br>JWT Token: ${data.jwt_token ? 'Available' : 'Missing'}`;
+                    window.JWT_TOKEN = data.jwt_token;
+                    window.isAuthenticated = true;
+                } else {
+                    authStatus.innerHTML = '❌ Not authenticated. <a href="/quick-login/customer">Login as Customer</a>';
+                    window.isAuthenticated = false;
+                }
+            } catch (error) {
+                console.log('❌ Auth check failed:', error);
+            }
+        }
+
+        // Test add to cart function
+        async function testAddToCart() {
+            console.log('🧪 === TESTING ADD TO CART ===');
+            console.log('🔍 isAuthenticated:', window.isAuthenticated);
+            console.log('🔍 JWT_TOKEN:', window.JWT_TOKEN ? 'Available' : 'Missing');
+
+            if (!window.isAuthenticated) {
+                console.log('❌ Not authenticated, cannot test');
+                return;
+            }
+
+            try {
+                console.log('📡 Sending POST request...');
+
+                const response = await axios.post('/api/cart', {
+                    product_variant_id: 1,
+                    quantity: 1,
+                    is_preorder: false
+                });
+
+                console.log('✅ Response received:', response.status);
+                console.log('📦 Response data:', response.data);
+
+                if (response.data.success) {
+                    console.log('🎉 SUCCESS! Product added to cart');
+                } else {
+                    console.log('❌ FAILED:', response.data.message);
+                }
+
+            } catch (error) {
+                console.log('❌ ERROR:', error.message);
+                if (error.response) {
+                    console.log('📦 Error response:', error.response.status, error.response.data);
+                }
+            }
+        }
+
+        // Initialize
+        checkAuth();
+    </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Cart Update</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body style="padding: 20px; font-family: Arial;">
+    <h2>🔍 Debug Cart Update Issue</h2>
+
+    <div style="background: #f0f0f0; padding: 15px; margin: 10px 0;">
+        <h3>Global Objects Check:</h3>
+        <div id="globals">Checking...</div>
+    </div>
+
+    <div style="background: #e8f4f8; padding: 15px; margin: 10px 0;">
+        <h3>Cart Elements Check:</h3>
+        <div id="elements">Checking...</div>
+    </div>
+
+    <button onclick="debugEverything()" style="padding: 10px 15px; margin: 5px; background: #007cba; color: white; border: none; border-radius: 5px;">
+        🔍 Debug Everything
+    </button>
+
+    <button onclick="forceAddToCart()" style="padding: 10px 15px; margin: 5px; background: #28a745; color: white; border: none; border-radius: 5px;">
+        ➕ Test Add to Cart
+    </button>
+
+    <button onclick="manualCartRefresh()" style="padding: 10px 15px; margin: 5px; background: #ffc107; color: black; border: none; border-radius: 5px;">
+        🔄 Manual Cart Refresh
+    </button>
+
+    <div id="output" style="background: white; border: 1px solid #ccc; padding: 15px; margin: 10px 0; min-height: 400px; font-family: monospace; font-size: 12px; overflow-y: auto;"></div>
+
+    <script>
+        let output = document.getElementById('output');
+
+        function log(msg) {
+            console.log(msg);
+            output.innerHTML += '<div style="margin: 2px 0;">' + msg + '</div>';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function checkGlobals() {
+            const globals = document.getElementById('globals');
+            let html = '';
+
+            html += `<div>🔍 window.app: ${window.app ? '✅ Available' : '❌ Not Available'}</div>`;
+            html += `<div>🔍 window.isAuthenticated: ${window.isAuthenticated ? '✅ True' : '❌ False'}</div>`;
+            html += `<div>🔍 window.JWT_TOKEN: ${window.JWT_TOKEN ? '✅ Available' : '❌ Missing'}</div>`;
+            html += `<div>🔍 window.Alpine: ${window.Alpine ? '✅ Available' : '❌ Not Available'}</div>`;
+
+            if (window.app) {
+                html += `<div>🔍 window.app.loadCart: ${typeof window.app.loadCart === 'function' ? '✅ Function' : '❌ Not Function'}</div>`;
+                html += `<div>🔍 window.app.cartCount: ${window.app.cartCount}</div>`;
+                html += `<div>🔍 window.app.cartItems: ${window.app.cartItems ? window.app.cartItems.length : 'undefined'} items</div>`;
+            }
+
+            globals.innerHTML = html;
+        }
+
+        function checkElements() {
+            const elements = document.getElementById('elements');
+            let html = '';
+
+            const cartCountElements = document.querySelectorAll('[data-testid="cart-count"]');
+            html += `<div>🔍 Cart Count Elements: ${cartCountElements.length} found</div>`;
+
+            cartCountElements.forEach((el, i) => {
+                html += `<div>   Element ${i+1}: text="${el.textContent}" display="${el.style.display}"</div>`;
+            });
+
+            const cartButtons = document.querySelectorAll('[data-testid="cart-button"]');
+            html += `<div>🔍 Cart Button Elements: ${cartButtons.length} found</div>`;
+
+            elements.innerHTML = html;
+        }
+
+        async function debugEverything() {
+            log('🔍 === DEBUGGING EVERYTHING ===');
+
+            checkGlobals();
+            checkElements();
+
+            // Check authentication
+            try {
+                const authResponse = await fetch('/debug-session');
+                const authData = await authResponse.json();
+                log('🔐 Auth Status: ' + JSON.stringify(authData, null, 2));
+            } catch (error) {
+                log('❌ Auth check failed: ' + error.message);
+            }
+
+            // Check cart API
+            if (window.JWT_TOKEN) {
+                try {
+                    const cartResponse = await fetch('/api/cart', {
+                        headers: {
+                            'Authorization': 'Bearer ' + window.JWT_TOKEN,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    const cartData = await cartResponse.json();
+                    log('🛒 Cart API Response: ' + JSON.stringify(cartData, null, 2));
+                } catch (error) {
+                    log('❌ Cart API failed: ' + error.message);
+                }
+            }
+
+            log('🏁 === DEBUG COMPLETE ===');
+        }
+
+        async function forceAddToCart() {
+            log('➕ === TESTING ADD TO CART ===');
+
+            if (!window.JWT_TOKEN) {
+                log('❌ No JWT token - redirecting to login');
+                window.location.href = '/quick-login/customer';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/cart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + window.JWT_TOKEN
+                    },
+                    body: JSON.stringify({
+                        product_variant_id: 1,
+                        quantity: 1,
+                        is_preorder: false
+                    })
+                });
+
+                const data = await response.json();
+                log('📦 Add to Cart Response: ' + JSON.stringify(data, null, 2));
+
+                if (data.success) {
+                    log('✅ Add to Cart SUCCESS!');
+
+                    // Now try to refresh
+                    setTimeout(() => {
+                        manualCartRefresh();
+                    }, 500);
+                } else {
+                    log('❌ Add to Cart FAILED: ' + data.message);
+                }
+            } catch (error) {
+                log('❌ Add to Cart ERROR: ' + error.message);
+            }
+        }
+
+        async function manualCartRefresh() {
+            log('🔄 === MANUAL CART REFRESH ===');
+
+            // Method 1: window.app.loadCart
+            if (window.app && window.app.loadCart) {
+                try {
+                    log('🔄 Calling window.app.loadCart(true)...');
+                    await window.app.loadCart(true);
+                    log('✅ window.app.loadCart completed. New count: ' + window.app.cartCount);
+                } catch (error) {
+                    log('❌ window.app.loadCart failed: ' + error.message);
+                }
+            } else {
+                log('❌ window.app.loadCart not available');
+            }
+
+            // Method 2: Direct DOM update
+            try {
+                log('🔄 Fetching fresh cart data...');
+                const response = await fetch('/api/cart', {
+                    headers: {
+                        'Authorization': 'Bearer ' + window.JWT_TOKEN,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const cartData = await response.json();
+                log('📦 Fresh cart data: ' + JSON.stringify(cartData, null, 2));
+
+                if (cartData.data && Array.isArray(cartData.data)) {
+                    const totalItems = cartData.data.reduce((sum, item) => sum + parseInt(item.quantity || 0), 0);
+                    log('📊 Calculated total items: ' + totalItems);
+
+                    const cartCountElements = document.querySelectorAll('[data-testid="cart-count"]');
+                    log('🔍 Found ' + cartCountElements.length + ' cart count elements');
+
+                    cartCountElements.forEach((el, i) => {
+                        el.textContent = totalItems;
+                        el.style.display = totalItems > 0 ? 'flex' : 'none';
+                        log('✅ Updated element ' + (i+1) + ' to: ' + totalItems);
+                    });
+                } else {
+                    log('❌ Cart data is not an array: ' + typeof cartData.data);
+                }
+            } catch (error) {
+                log('❌ Direct DOM update failed: ' + error.message);
+            }
+
+            // Method 3: Custom event
+            try {
+                log('🔄 Dispatching cartUpdated event...');
+                window.dispatchEvent(new CustomEvent('cartUpdated', {
+                    detail: { timestamp: Date.now() }
+                }));
+                log('✅ cartUpdated event dispatched');
+            } catch (error) {
+                log('❌ Event dispatch failed: ' + error.message);
+            }
+
+            log('🏁 === REFRESH METHODS COMPLETE ===');
+
+            // Update status again
+            setTimeout(() => {
+                checkGlobals();
+                checkElements();
+            }, 100);
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            checkGlobals();
+            checkElements();
+
+            // Auto-debug after 1 second
+            setTimeout(debugEverything, 1000);
+        });
+    </script>
+</body>
+</html>

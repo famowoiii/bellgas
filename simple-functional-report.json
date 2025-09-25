@@ -1,0 +1,143 @@
+{
+  "timestamp": "2025-09-11T05:39:22.209Z",
+  "summary": {
+    "total_tests": 18,
+    "total_passed": 16,
+    "total_failed": 2,
+    "success_rate": "88.9%"
+  },
+  "tests": {
+    "web_routes": [
+      {
+        "name": "Home Page",
+        "path": "/",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Login Page",
+        "path": "/login",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Register Page",
+        "path": "/register",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Products Page",
+        "path": "/products",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Cart Page",
+        "path": "/cart",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Checkout Page",
+        "path": "/checkout",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Dashboard Page",
+        "path": "/dashboard",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "About Page",
+        "path": "/about",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      },
+      {
+        "name": "Contact Page",
+        "path": "/contact",
+        "status": 200,
+        "success": true,
+        "category": "web"
+      }
+    ],
+    "api_routes": [
+      {
+        "name": "Health Check",
+        "path": "/up",
+        "status": 200,
+        "success": true,
+        "category": "api"
+      },
+      {
+        "name": "API Products",
+        "path": "/api/products",
+        "status": 200,
+        "success": true,
+        "category": "api"
+      },
+      {
+        "name": "API Categories",
+        "path": "/api/products/categories",
+        "status": 200,
+        "success": true,
+        "category": "api"
+      }
+    ],
+    "admin_routes": [
+      {
+        "name": "Admin Dashboard",
+        "path": "/admin/dashboard",
+        "status": 200,
+        "success": true,
+        "category": "admin"
+      },
+      {
+        "name": "Admin Orders",
+        "path": "/admin/orders",
+        "status": 200,
+        "success": true,
+        "category": "admin"
+      },
+      {
+        "name": "Admin Products",
+        "path": "/admin/products",
+        "status": 200,
+        "success": true,
+        "category": "admin"
+      },
+      {
+        "name": "Admin Customers",
+        "path": "/admin/customers",
+        "status": 200,
+        "success": true,
+        "category": "admin"
+      }
+    ],
+    "auth_tests": [
+      {
+        "name": "Admin API Login",
+        "success": false,
+        "status": 422,
+        "response": "{\"message\":\"Email address is required. (and 1 more error)\",\"errors\":{\"email\":[\"Email address is requ"
+      },
+      {
+        "name": "Customer API Login",
+        "success": false,
+        "status": 422,
+        "response": "{\"message\":\"Email address is required. (and 1 more error)\",\"errors\":{\"email\":[\"Email address is requ"
+      }
+    ]
+  }
+}
