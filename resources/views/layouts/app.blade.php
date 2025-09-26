@@ -382,17 +382,17 @@
             </div>
         </div>
 
-        <!-- Error State -->
-        <div x-show="cartLoadingError && !cartLoading" class="p-6">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-center space-x-2 text-red-800">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span class="font-medium">Error loading cart</span>
+        <!-- Error State - Improved -->
+        <div x-show="cartLoadingError && !cartLoading && !hasCartItems" class="p-6">
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fas fa-shopping-cart text-gray-400 text-lg"></i>
                 </div>
-                <p class="text-red-600 text-sm mt-1" x-text="cartLoadingError"></p>
+                <h3 class="font-medium text-gray-800 mb-2">Cart temporarily unavailable</h3>
+                <p class="text-gray-600 text-sm mb-4">We're having trouble loading your cart items right now.</p>
                 <button @click="loadCart(true)"
-                        class="mt-3 px-4 py-2 bg-red-100 hover:bg-red-200 text-red-800 rounded-lg text-sm transition-colors">
-                    <i class="fas fa-redo mr-1"></i> Retry
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors">
+                    <i class="fas fa-refresh mr-1"></i> Try Again
                 </button>
             </div>
         </div>
@@ -629,7 +629,8 @@
                             console.log('✅ Cart loaded from API successfully');
                         } catch (error) {
                             console.warn('⚠️ Cart loading failed during init:', error);
-                            // Keep existing cart data if API fails
+                            // Clear error to prevent showing temporary unavailable
+                            this.cartLoadingError = null;
                         }
 
                         // Initialize other features after cart is loaded
@@ -655,6 +656,20 @@
                             count: this.cartCount,
                             total: this.cartTotal
                         });
+                    });
+
+                    // Setup cart event listeners
+                    this.setupCartEventListeners();
+                },
+
+                setupCartEventListeners() {
+                    console.log('🎧 Setting up cart event listeners');
+                    window.addEventListener('cartItemAdded', (event) => {
+                        console.log('📡 Cart item added event received:', event.detail);
+                        if (event.detail.forceRefresh && this.loadCart) {
+                            console.log('🔄 Force refreshing cart due to cartItemAdded event');
+                            this.loadCart(true);
+                        }
                     });
                 },
 
@@ -751,13 +766,20 @@
                         return { success: true, fromCache: true };
                     }
 
+                    // Store current cart items in case of error
+                    const currentCartItems = [...this.cartItems];
+                    const currentCartTotal = this.cartTotal;
+
                     try {
                         this.cartLoading = true;
-                        this.cartLoadingError = null;
+                        // Only clear error if we have no items, otherwise keep showing cart
+                        if (this.cartItems.length === 0) {
+                            this.cartLoadingError = null;
+                        }
 
-                        const token = window.JWT_TOKEN;
+                        const token = window.JWT_TOKEN || localStorage.getItem('access_token');
                         if (!token) {
-                            throw new Error('Authentication token not available');
+                            throw new Error('Please login to view cart');
                         }
 
                         const response = await axios.get('/api/cart', {
@@ -766,7 +788,7 @@
                                 'Accept': 'application/json',
                                 'X-Requested-With': 'XMLHttpRequest'
                             },
-                            timeout: 15000 // 15 second timeout (was causing premature failures)
+                            timeout: 10000 // 10 second timeout
                         });
 
                         if (response.data.success) {
@@ -783,6 +805,7 @@
                             this.cartItems = processedItems;
                             this.cartTotal = response.data.data.total || 0;
                             this.cartLastLoaded = Date.now();
+                            this.cartLoadingError = null; // Clear any errors on success
 
                             console.log('✅ MODERN cart loaded:', this.cartItems.length, 'items');
                             console.log('💰 Cart total:', this.cartTotal);
@@ -796,29 +819,32 @@
                         }
                     } catch (error) {
                         console.error('❌ MODERN loadCart error:', error);
-                        this.cartLoadingError = error.message || 'Failed to load cart';
 
-                        // Auto-retry for network timeouts
-                        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-                            console.log('⏳ Cart loading timed out, will auto-retry...');
-                            this.cartLoadingError = 'Loading cart... Please wait, this may take a moment.';
-
-                            // Auto-retry after 3 seconds
-                            setTimeout(async () => {
-                                if (this.cartItems.length === 0 && this.isAuthenticated) {
-                                    console.log('🔄 Auto-retrying cart load...');
-                                    try {
-                                        await this.loadCart(true);
-                                    } catch (retryError) {
-                                        console.error('❌ Auto-retry failed:', retryError);
-                                        this.cartLoadingError = 'Unable to load cart. Please click retry or refresh the page.';
-                                    }
-                                }
-                            }, 3000);
+                        // Handle different error types more gracefully
+                        if (error.response?.status === 401) {
+                            // Clear cart for authentication errors
+                            this.cartItems = [];
+                            this.cartTotal = 0;
+                            this.cartLoadingError = 'Please login to view your cart';
+                        } else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+                            // For timeout errors, keep existing cart and don't show disruptive error
+                            this.cartItems = currentCartItems;
+                            this.cartTotal = currentCartTotal;
+                            console.log('⚠️ Cart loading timeout - keeping existing cart');
+                            // Only show error if we have no cart items
+                            if (currentCartItems.length === 0) {
+                                this.cartLoadingError = 'Cart loading slowly...';
+                            }
+                        } else {
+                            // For other errors, keep existing cart if we have it
+                            this.cartItems = currentCartItems;
+                            this.cartTotal = currentCartTotal;
+                            if (currentCartItems.length === 0) {
+                                this.cartLoadingError = 'Having trouble loading cart';
+                            }
                         }
 
-                        // Don't clear existing items on error, just show error
-                        return { success: false, error: this.cartLoadingError };
+                        return { success: false, error: this.cartLoadingError, hasItems: currentCartItems.length > 0 };
                     } finally {
                         this.cartLoading = false;
                     }
@@ -983,40 +1009,6 @@
                             timestamp: Date.now()
                         }
                     }));
-                },
-
-                async updateCartQuantity(itemId, newQuantity) {
-                    console.log('🔄 MODERN updateCartQuantity:', itemId, newQuantity);
-
-                    if (newQuantity <= 0) {
-                        return await this.removeFromCart(itemId);
-                    }
-
-                    try {
-                        this.setCartItemLoading(itemId, true);
-
-                        const token = window.JWT_TOKEN;
-                        const response = await axios.put(`/api/cart/${itemId}`, {
-                            quantity: parseInt(newQuantity)
-                        }, {
-                            headers: {
-                                'Authorization': 'Bearer ' + token,
-                                'Accept': 'application/json'
-                            }
-                        });
-
-                        if (response.data.success) {
-                            await this.loadCart(true);
-                            this.showNotification('Cart updated', 'success', 3000);
-                            return { success: true };
-                        }
-                    } catch (error) {
-                        console.error('❌ Update quantity error:', error);
-                        this.showNotification('Failed to update cart', 'error');
-                        return { success: false, error: error.message };
-                    } finally {
-                        this.setCartItemLoading(itemId, false);
-                    }
                 },
 
                 async removeFromCart(itemId) {

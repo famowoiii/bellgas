@@ -76,17 +76,60 @@
                         </div>
 
                         <!-- Add to Cart -->
-                        <button @click="addToCart(product)"
+                        <button type="button"
+                                @click.prevent="addToCart(product)"
                                 :disabled="isAddingToCart(product.id) || product.stock <= 0"
-                                class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium">
-                            <div class="flex items-center justify-center">
-                                <div x-show="isAddingToCart(product.id)" class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                                <span x-show="!isAddingToCart(product.id) && product.stock > 0">
-                                    <i class="fas fa-cart-plus mr-2"></i>Add to Cart
+                                :data-product-id="product.id"
+                                :class="{
+                                    'bg-blue-600 hover:bg-blue-700': product.stock > 0 && !isAddingToCart(product.id),
+                                    'bg-green-500': isAddingToCart(product.id),
+                                    'bg-gray-400': product.stock <= 0,
+                                    'transform scale-95': isAddingToCart(product.id)
+                                }"
+                                class="w-full px-4 py-3 text-white rounded-lg transition-all duration-300 font-medium disabled:cursor-not-allowed relative overflow-hidden">
+
+                            <!-- Background loading animation -->
+                            <div x-show="isAddingToCart(product.id)"
+                                 class="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 animate-pulse"></div>
+
+                            <!-- Content -->
+                            <div class="relative flex items-center justify-center">
+                                <!-- Loading spinner -->
+                                <div x-show="isAddingToCart(product.id)"
+                                     class="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"
+                                     x-transition:enter="transition-opacity ease-out duration-300"
+                                     x-transition:enter-start="opacity-0"
+                                     x-transition:enter-end="opacity-100"></div>
+
+                                <!-- Normal state -->
+                                <span x-show="!isAddingToCart(product.id) && product.stock > 0"
+                                      x-transition:enter="transition-all ease-out duration-300"
+                                      x-transition:enter-start="opacity-0 transform scale-95"
+                                      x-transition:enter-end="opacity-100 transform scale-100">
+                                    <i class="fas fa-cart-plus mr-2"></i>Tambah ke Keranjang
                                 </span>
-                                <span x-show="isAddingToCart(product.id)">Adding to Cart...</span>
-                                <span x-show="!isAddingToCart(product.id) && product.stock <= 0">Out of Stock</span>
+
+                                <!-- Loading state -->
+                                <span x-show="isAddingToCart(product.id)"
+                                      x-transition:enter="transition-all ease-out duration-300"
+                                      x-transition:enter-start="opacity-0"
+                                      x-transition:enter-end="opacity-100"
+                                      class="font-semibold">
+                                    <i class="fas fa-check mr-2"></i>Menambahkan...
+                                </span>
+
+                                <!-- Out of stock -->
+                                <span x-show="!isAddingToCart(product.id) && product.stock <= 0"
+                                      class="text-gray-300">
+                                    <i class="fas fa-times mr-2"></i>Stok Habis
+                                </span>
                             </div>
+
+                            <!-- Success ripple effect -->
+                            <div x-show="isAddingToCart(product.id)"
+                                 class="absolute inset-0 bg-white bg-opacity-20 rounded-lg animate-ping"
+                                 x-transition:enter="transition-opacity ease-out duration-500"
+                                 x-transition:leave="transition-opacity ease-in duration-300"></div>
                         </button>
                     </div>
                 </div>
@@ -178,25 +221,98 @@ function simpleProductsApp() {
                 }
             }
 
-            // Simple fallback notification
-            try {
-                const notification = document.createElement('div');
-                notification.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:9999; padding:15px 20px; border-radius:8px; color:white; max-width:300px; font-family:Arial,sans-serif;';
+            // Modern toast notification with animation
+            this.createModernNotification(message, type);
+        },
 
-                if (type === 'success') notification.style.backgroundColor = '#10b981';
-                else if (type === 'error') notification.style.backgroundColor = '#ef4444';
-                else if (type === 'warning') notification.style.backgroundColor = '#f59e0b';
-                else notification.style.backgroundColor = '#3b82f6';
+        createModernNotification(message, type = 'success') {
+            // Remove any existing notifications first
+            document.querySelectorAll('.modern-toast').forEach(n => n.remove());
 
-                notification.innerHTML = '<div style="display:flex;align-items:center;gap:10px;"><span>' + message + '</span><button onclick="this.parentElement.parentElement.remove()" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;">×</button></div>';
+            const notification = document.createElement('div');
+            notification.className = 'modern-toast';
 
-                document.body.appendChild(notification);
-                setTimeout(() => notification.remove(), 5000);
-            } catch (error) {
-                console.error('Fallback notification failed:', error);
-                // Last resort
-                console.log('NOTIFICATION:', message);
+            let bgColor, icon;
+            switch (type) {
+                case 'success':
+                    bgColor = '#10b981';
+                    icon = '✓';
+                    break;
+                case 'error':
+                    bgColor = '#ef4444';
+                    icon = '✕';
+                    break;
+                case 'warning':
+                    bgColor = '#f59e0b';
+                    icon = '⚠';
+                    break;
+                default:
+                    bgColor = '#3b82f6';
+                    icon = 'ℹ';
             }
+
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 10000;
+                min-width: 350px;
+                padding: 16px 20px;
+                background: ${bgColor};
+                color: white;
+                border-radius: 12px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                font-family: system-ui, -apple-system, sans-serif;
+                font-size: 14px;
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                transform: translateX(400px);
+                transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+                opacity: 0;
+            `;
+
+            notification.innerHTML = `
+                <div style="
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 50%;
+                    background: rgba(255,255,255,0.2);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                ">${icon}</div>
+                <div style="flex: 1;">${message}</div>
+                <button onclick="this.parentElement.remove()" style="
+                    background: none;
+                    border: none;
+                    color: rgba(255,255,255,0.8);
+                    cursor: pointer;
+                    font-size: 18px;
+                    width: 20px;
+                    height: 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                ">×</button>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Animate in
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+                notification.style.opacity = '1';
+            }, 50);
+
+            // Auto remove
+            setTimeout(() => {
+                notification.style.transform = 'translateX(400px)';
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
         },
 
         isAddingToCart(productId) {
@@ -204,156 +320,174 @@ function simpleProductsApp() {
         },
 
         async addToCart(product) {
-            console.log('🛒 Products page: Adding to cart:', product.name);
+            console.log('🛒 Adding to cart:', product.name);
+
+            // Prevent double clicks
+            if (this.addingToCart[product.id]) {
+                return;
+            }
 
             if (!product.variant_id) {
-                console.error('❌ No variant_id for product:', product.name);
                 this.showNotification('Product variant tidak tersedia', 'error');
                 return;
             }
 
             if (product.stock <= 0) {
-                console.error('❌ Product out of stock:', product.name);
                 this.showNotification('Produk sedang habis', 'error');
-                this.showNotification('Produk sedang habis');
-                }
                 return;
             }
 
-            // Check authentication
-            if (!window.isAuthenticated) {
-                console.error('❌ User not authenticated');
-                this.showNotification('Silakan login terlebih dahulu', 'error');
-                this.showNotification('Silakan login terlebih dahulu');
-                }
-                setTimeout(() => window.location.href = '/login', 2000);
-                return;
-            }
-
-            // Check if global app is available
-            if (!window.app) {
-                console.error('❌ Global app not available');
-                alert('System error: Global app not available');
-                return;
-            }
-
-            console.log('🔍 Checking global app methods:', {
-                addToCart: typeof window.app.addToCart,
-                showNotification: typeof window.app.showNotification,
-                loadCart: typeof window.app.loadCart
-            });
-
-            if (!window.app.addToCart || typeof window.app.addToCart !== 'function') {
-                console.error('❌ Global app addToCart method not available:', typeof window.app.addToCart);
-                console.log('📋 Available app methods:', Object.getOwnPropertyNames(window.app));
-
-                // Try direct API call as fallback
-                console.log('🔄 Falling back to direct API call...');
-                await this.directAddToCart(product);
-                return;
-            }
-
-            this.addingToCart[product.id] = true;
-            console.log('⏳ Setting loading state for product:', product.id);
-
-            try {
-                console.log('🚀 Calling global app.addToCart with:', {
-                    variant_id: product.variant_id,
-                    quantity: 1,
-                    product_name: product.name
-                });
-
-                const result = await window.app.addToCart(product.variant_id, 1, {
-                    isPreorder: false
-                });
-
-                console.log('🛒 addToCart result:', result);
-
-                if (result && result.success !== false) {
-                    console.log('✅ Successfully added to cart via global app');
-
-                    // Show success notification
-                    this.showNotification(`${product.name} berhasil ditambahkan ke cart!`, 'success');
-
-                    // Force update cart display immediately
-                    if (window.app && window.app.loadCart) {
-                        console.log('🔄 Force reloading cart for immediate update...');
-                        await window.app.loadCart(true);
-                        console.log('✅ Cart forcefully reloaded, new count:', window.app.cartCount);
-                    }
-                } else {
-                    console.error('❌ addToCart returned failure:', result);
-                    throw new Error(result.error || 'Failed to add to cart');
-                }
-            } catch (error) {
-                console.error('❌ Error in addToCart:', error);
-
-                let errorMessage = 'Gagal menambahkan ke cart';
-                if (error.response?.data?.message) {
-                    errorMessage = error.response.data.message;
-                } else if (error.message) {
-                    errorMessage = error.message;
-                }
-
-                this.showNotification(errorMessage, 'error');
-                this.showNotification(errorMessage, 'error');
-                }
-            } finally {
-                this.addingToCart[product.id] = false;
-                console.log('🏁 Finished addToCart for product:', product.id);
-            }
-        },
-
-        async directAddToCart(product) {
-            console.log('🔄 Direct API addToCart for:', product.name);
-
+            // Set loading state
             this.addingToCart[product.id] = true;
 
             try {
+                // Direct API call for simplicity
                 const response = await axios.post('/api/cart', {
                     product_variant_id: product.variant_id,
                     quantity: 1,
                     is_preorder: false
+                }, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
                 });
 
-                console.log('🛒 Direct API response:', response.data);
-
                 if (response.data.success) {
-                    console.log('✅ Direct API addToCart success');
+                    // Success animation
+                    await this.showSuccessAnimation(product);
 
-                    // Show success notification
-                    this.showNotification(`${product.name} berhasil ditambahkan ke cart!`, 'success');
+                    // Show notification
+                    this.showNotification(`✓ ${product.name} berhasil ditambahkan ke keranjang!`, 'success');
 
-                    // Try to reload cart for immediate update
+                    // Update cart counter
+                    this.animateCartCounter();
+
+                    // Try to update global cart if available
                     if (window.app && window.app.loadCart) {
-                        console.log('🔄 Force reloading cart after direct API success...');
                         await window.app.loadCart(true);
-                        console.log('✅ Cart reloaded after direct API, new count:', window.app.cartCount);
-                    } else {
-                        console.warn('⚠️ Cannot reload cart - loadCart method not available');
-                        // As fallback, trigger a manual cart refresh event
-                        window.dispatchEvent(new CustomEvent('cartUpdated', {
-                            detail: { product: product.name, action: 'added' }
-                        }));
                     }
                 } else {
                     throw new Error(response.data.message || 'Failed to add to cart');
                 }
             } catch (error) {
-                console.error('❌ Direct API addToCart error:', error);
+                console.error('❌ Error adding to cart:', error);
 
-                let errorMessage = 'Gagal menambahkan ke cart';
-                if (error.response?.data?.message) {
+                let errorMessage = 'Gagal menambahkan ke keranjang';
+                if (error.response?.status === 401) {
+                    errorMessage = 'Silakan login terlebih dahulu';
+                    setTimeout(() => window.location.href = '/login', 2000);
+                } else if (error.response?.data?.message) {
                     errorMessage = error.response.data.message;
-                } else if (error.message) {
-                    errorMessage = error.message;
                 }
 
                 this.showNotification(errorMessage, 'error');
-                this.showNotification(errorMessage, 'error');
-                }
             } finally {
                 this.addingToCart[product.id] = false;
+            }
+        },
+
+        async showSuccessAnimation(product) {
+            // Add a small delay for visual feedback
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    // Flash success color briefly
+                    const button = document.querySelector(`button[data-product-id="${product.id}"]`);
+                    if (button) {
+                        // Apply success state temporarily
+                        button.style.cssText = `
+                            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+                            transform: scale(1.05) !important;
+                            transition: all 0.2s ease !important;
+                        `;
+
+                        setTimeout(() => {
+                            button.style.cssText = '';
+                        }, 500);
+                    }
+                    resolve();
+                }, 200);
+            });
+        },
+
+        animateCartCounter() {
+            // Animate the specific cart counter badge in header
+            const cartCounter = document.querySelector('[data-testid="cart-count"]');
+            if (cartCounter) {
+                this.animateElement(cartCounter, {
+                    scale: 1.4,
+                    background: '#10b981',
+                    color: 'white',
+                    borderColor: '#059669',
+                    transform: 'scale(1.4) pulse',
+                    animation: 'cartBounce 0.6s ease-out'
+                });
+            }
+
+            // Animate the cart button itself
+            const cartButton = document.querySelector('[data-testid="cart-button"]');
+            if (cartButton) {
+                this.animateElement(cartButton, {
+                    transform: 'scale(1.1) rotate(-5deg)',
+                    color: '#10b981'
+                }, 400);
+            }
+
+            // Animate shopping cart icons
+            const cartIcons = document.querySelectorAll('.fa-shopping-cart');
+            cartIcons.forEach(icon => {
+                this.animateElement(icon, {
+                    transform: 'scale(1.2) rotate(15deg)',
+                    color: '#10b981'
+                }, 500);
+            });
+
+            // Add cart bounce CSS animation if not exists
+            this.addCartAnimations();
+        },
+
+        animateElement(element, styles, duration = 300) {
+            if (!element) return;
+
+            // Store original styles
+            const originalStyles = {};
+            Object.keys(styles).forEach(prop => {
+                originalStyles[prop] = element.style[prop] || '';
+            });
+
+            // Apply animation styles
+            element.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+            Object.assign(element.style, styles);
+
+            // Restore original styles after animation
+            setTimeout(() => {
+                Object.assign(element.style, originalStyles);
+                element.style.transition = '';
+            }, duration);
+        },
+
+        addCartAnimations() {
+            if (!document.getElementById('cart-animations')) {
+                const style = document.createElement('style');
+                style.id = 'cart-animations';
+                style.textContent = `
+                    @keyframes cartBounce {
+                        0% { transform: scale(1); }
+                        20% { transform: scale(1.3) rotate(-5deg); }
+                        40% { transform: scale(1.1) rotate(2deg); }
+                        60% { transform: scale(1.2) rotate(-1deg); }
+                        80% { transform: scale(1.05) rotate(0.5deg); }
+                        100% { transform: scale(1) rotate(0deg); }
+                    }
+                    @keyframes cartPulse {
+                        0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+                        50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+                    }
+                    .cart-success-animation {
+                        animation: cartBounce 0.6s ease-out, cartPulse 0.8s ease-out;
+                    }
+                `;
+                document.head.appendChild(style);
             }
         }
     }

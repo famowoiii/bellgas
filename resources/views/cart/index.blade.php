@@ -183,11 +183,20 @@ function cart() {
             try {
                 this.loading = true;
                 const token = this.getAuthToken();
-                
+
                 if (!token) {
-                    // Handle guest cart if needed
-                    this.items = [];
-                    this.subtotal = 0;
+                    // Load guest cart from session/API if available
+                    try {
+                        const response = await axios.get('/api/cart');
+                        if (response.data.success) {
+                            this.items = response.data.data.items || [];
+                            this.subtotal = parseFloat(response.data.data.total || 0).toFixed(2);
+                        }
+                    } catch (error) {
+                        console.log('No guest cart available or API error');
+                        this.items = [];
+                        this.subtotal = 0;
+                    }
                     return;
                 }
                 
