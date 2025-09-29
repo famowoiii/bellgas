@@ -149,6 +149,7 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
 function cart() {
     return {
@@ -158,27 +159,27 @@ function cart() {
         subtotal: 0,
         deliveryFee: 9.95,
         freeDeliveryThreshold: 100,
-        
+
         get totalItems() {
             return this.items.reduce((sum, item) => sum + item.quantity, 0);
         },
-        
+
         get total() {
             const sub = parseFloat(this.subtotal);
             const delivery = sub >= this.freeDeliveryThreshold ? 0 : this.deliveryFee;
             return (sub + delivery).toFixed(2);
         },
-        
+
         get canProceedToCheckout() {
-            return this.items.length > 0 && this.items.every(item => 
+            return this.items.length > 0 && this.items.every(item =>
                 item.stock_available && !item.reservation_expired
             );
         },
-        
+
         async init() {
             await this.loadCart();
         },
-        
+
         async loadCart() {
             try {
                 this.loading = true;
@@ -199,11 +200,11 @@ function cart() {
                     }
                     return;
                 }
-                
+
                 const response = await axios.get('/api/cart', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
+
                 if (response.data.success) {
                     this.items = response.data.data.items || [];
                     this.subtotal = parseFloat(response.data.data.total || 0).toFixed(2);
@@ -220,21 +221,25 @@ function cart() {
                 this.loading = false;
             }
         },
-        
+
         async incrementQuantity(item) {
+            console.log('🔼 Increment quantity clicked for item:', item.id);
             if (item.quantity >= 10) return;
-            
+
             const newQuantity = item.quantity + 1;
+            console.log('🔼 New quantity will be:', newQuantity);
             await this.updateItemQuantity(item, newQuantity);
         },
-        
+
         async decrementQuantity(item) {
+            console.log('🔽 Decrement quantity clicked for item:', item.id);
             if (item.quantity <= 1) return;
-            
+
             const newQuantity = item.quantity - 1;
+            console.log('🔽 New quantity will be:', newQuantity);
             await this.updateItemQuantity(item, newQuantity);
         },
-        
+
         async updateQuantity(item) {
             // Triggered when input value changes directly
             const quantity = Math.max(1, Math.min(10, parseInt(item.quantity) || 1));
@@ -243,38 +248,45 @@ function cart() {
                 await this.updateItemQuantity(item, quantity);
             }
         },
-        
+
         async updateItemQuantity(item, newQuantity) {
+            console.log('🔄 updateItemQuantity called for item:', item.id, 'new quantity:', newQuantity);
             try {
                 this.updating = true;
                 const token = this.getAuthToken();
-                
+                console.log('🔐 Auth token available:', !!token);
+
                 if (!token) {
+                    console.error('❌ No auth token available');
                     this.showNotification('Please login to update cart', 'error');
                     return;
                 }
-                
+
+                console.log('📤 Sending PUT request to /api/cart/' + item.id);
                 const response = await axios.put(`/api/cart/${item.id}`, {
                     quantity: newQuantity
                 }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
+
+                console.log('📥 Update response:', response.data);
+
                 if (response.data.success) {
                     // Update the item in the local array
                     const updatedItem = response.data.data;
                     const index = this.items.findIndex(i => i.id === item.id);
+                    console.log('🔄 Updating item at index:', index);
                     if (index !== -1) {
                         this.items[index].quantity = updatedItem.quantity;
                         this.items[index].total = updatedItem.total;
                         this.items[index].price = updatedItem.price;
                     }
-                    
+
                     // Recalculate subtotal
-                    this.subtotal = this.items.reduce((sum, item) => 
+                    this.subtotal = this.items.reduce((sum, item) =>
                         sum + parseFloat(item.total), 0
                     ).toFixed(2);
-                    
+
                     this.showNotification('Cart updated', 'success');
                 } else {
                     // Revert the change if API call failed
@@ -285,7 +297,7 @@ function cart() {
                 console.error('Failed to update cart item:', error);
                 // Revert the change
                 await this.loadCart();
-                
+
                 if (error.response?.status === 400) {
                     this.showNotification(error.response.data.message || 'Insufficient stock', 'error');
                 } else {
@@ -295,26 +307,33 @@ function cart() {
                 this.updating = false;
             }
         },
-        
+
         async removeItem(item) {
+            console.log('🗑️ Remove item clicked for:', item.id);
             if (!confirm('Are you sure you want to remove this item?')) return;
-            
+
             try {
                 this.updating = true;
                 const token = this.getAuthToken();
-                
+                console.log('🔐 Auth token for delete:', !!token);
+
                 if (!token) {
+                    console.error('❌ No auth token for delete');
                     this.showNotification('Please login to modify cart', 'error');
                     return;
                 }
-                
+
+                console.log('📤 Sending DELETE request to /api/cart/' + item.id);
                 const response = await axios.delete(`/api/cart/${item.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
+
+                console.log('📥 Delete response:', response.data);
+
                 if (response.data.success) {
+                    console.log('✅ Item deleted successfully, removing from local array');
                     this.items = this.items.filter(i => i.id !== item.id);
-                    this.subtotal = this.items.reduce((sum, item) => 
+                    this.subtotal = this.items.reduce((sum, item) =>
                         sum + parseFloat(item.total), 0
                     ).toFixed(2);
                     this.showNotification('Item removed from cart', 'success');
@@ -326,23 +345,23 @@ function cart() {
                 this.updating = false;
             }
         },
-        
+
         async clearCart() {
             if (!confirm('Are you sure you want to clear your cart?')) return;
-            
+
             try {
                 this.updating = true;
                 const token = this.getAuthToken();
-                
+
                 if (!token) {
                     this.showNotification('Please login to clear cart', 'error');
                     return;
                 }
-                
+
                 const response = await axios.delete('/api/cart', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                
+
                 if (response.data.success) {
                     this.items = [];
                     this.subtotal = 0;
@@ -355,20 +374,20 @@ function cart() {
                 this.updating = false;
             }
         },
-        
+
         proceedToCheckout() {
             if (!this.canProceedToCheckout) {
                 this.showNotification('Please resolve cart issues before checkout', 'error');
                 return;
             }
-            
+
             window.location.href = '/checkout';
         },
-        
+
         getAuthToken() {
             return localStorage.getItem('access_token');
         },
-        
+
         showNotification(message, type = 'info') {
             if (window.app && window.app.showNotification) {
                 window.app.showNotification(message, type);
@@ -379,4 +398,5 @@ function cart() {
     }
 }
 </script>
+@endpush
 @endsection

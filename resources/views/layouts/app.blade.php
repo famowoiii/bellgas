@@ -440,13 +440,13 @@
                     <!-- Quantity Controls -->
                     <div class="flex items-center justify-between mt-4">
                         <div class="flex items-center space-x-3">
-                            <button @click="updateCartQuantity(item.id, item.quantity - 1)"
+                            <button @click="console.log('🔽 CART MINUS clicked for item:', item.id, 'current qty:', item.quantity); updateCartQuantity(item.id, item.quantity - 1)"
                                     :disabled="isCartItemLoading(item.id)"
                                     class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                                 <i class="fas fa-minus text-xs text-gray-600"></i>
                             </button>
                             <span class="w-8 text-center font-medium" x-text="item.quantity"></span>
-                            <button @click="updateCartQuantity(item.id, item.quantity + 1)"
+                            <button @click="console.log('🔼 CART PLUS clicked for item:', item.id, 'current qty:', item.quantity); updateCartQuantity(item.id, item.quantity + 1)"
                                     :disabled="isCartItemLoading(item.id)"
                                     class="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
                                 <i class="fas fa-plus text-xs text-gray-600"></i>
@@ -454,7 +454,7 @@
                         </div>
 
                         <!-- Remove Button -->
-                        <button @click="removeFromCart(item.id)"
+                        <button @click="console.log('🗑️ CART REMOVE clicked for item:', item.id); removeFromCart(item.id)"
                                 :disabled="isCartItemLoading(item.id)"
                                 class="px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                             <i class="fas fa-trash text-xs mr-1"></i>
@@ -793,14 +793,21 @@
 
                         if (response.data.success) {
                             // Process cart items with additional data
-                            const processedItems = (response.data.data.items || []).map(item => ({
-                                ...item,
-                                name: item.productVariant?.product?.name || 'Unknown Product',
-                                variant_name: item.productVariant?.name || 'Standard',
-                                image: item.productVariant?.product?.photos?.[0]?.url || '/placeholder.jpg',
-                                formatted_price: '$' + parseFloat(item.price || 0).toFixed(2),
-                                formatted_total: '$' + parseFloat(item.total || 0).toFixed(2)
-                            }));
+                            const processedItems = (response.data.data.items || []).map(item => {
+                                console.log('🔍 Processing cart item:', item);
+                                const processedItem = {
+                                    ...item,
+                                    name: item.productVariant?.product?.name || 'Unknown Product',
+                                    variant_name: item.productVariant?.name || 'Standard',
+                                    image: item.productVariant?.product?.photos?.[0]?.url || '/placeholder.jpg',
+                                    // Fix price display - use effective_price if available, otherwise price
+                                    display_price: item.effective_price || item.price || 0,
+                                    formatted_price: '$' + parseFloat(item.effective_price || item.price || 0).toFixed(2),
+                                    formatted_total: '$' + parseFloat(item.total || 0).toFixed(2)
+                                };
+                                console.log('✅ Processed cart item:', processedItem);
+                                return processedItem;
+                            });
 
                             this.cartItems = processedItems;
                             this.cartTotal = response.data.data.total || 0;
@@ -931,15 +938,37 @@
 
                 async updateCartQuantity(itemId, newQuantity) {
                     console.log('🔄 MODERN updateCartQuantity:', itemId, newQuantity);
+                    console.log('🔐 JWT Token available:', !!window.JWT_TOKEN);
+                    console.log('👤 User authenticated:', this.isAuthenticated);
 
                     if (newQuantity <= 0) {
+                        console.log('⬇️ Quantity is 0 or less, removing item instead');
                         return await this.removeFromCart(itemId);
                     }
 
                     try {
                         this.setCartItemLoading(itemId, true);
+                        console.log('⏳ Set loading state for item:', itemId);
 
                         const token = window.JWT_TOKEN;
+                        if (!token) {
+                            console.error('❌ No JWT token available for cart update');
+                            this.showNotification('Authentication required', 'error');
+                            return { success: false, error: 'No token' };
+                        }
+
+                        // Find the item in our current cart to verify it exists
+                        const existingItem = this.cartItems.find(item => item.id === itemId);
+                        console.log('🔍 Found item in current cart:', existingItem);
+
+                        if (!existingItem) {
+                            console.error('❌ Item not found in current cart items:', itemId);
+                            console.error('📋 Available cart items:', this.cartItems.map(item => ({ id: item.id, name: item.name })));
+                            this.showNotification('Item not found in cart', 'error');
+                            return { success: false, error: 'Item not found locally' };
+                        }
+
+                        console.log('📤 Sending PUT request to /api/cart/' + itemId);
                         const response = await axios.put(`/api/cart/${itemId}`, {
                             quantity: parseInt(newQuantity)
                         }, {
@@ -949,16 +978,26 @@
                             }
                         });
 
+                        console.log('📥 Cart update response:', response.data);
+
                         if (response.data.success) {
+                            console.log('✅ Cart update successful, reloading cart...');
                             await this.loadCart(true);
                             this.showNotification('Cart updated', 'success', 3000);
                             return { success: true };
+                        } else {
+                            console.error('❌ Server returned success: false');
+                            this.showNotification(response.data.message || 'Update failed', 'error');
+                            return { success: false, error: response.data.message };
                         }
                     } catch (error) {
                         console.error('❌ Update quantity error:', error);
+                        console.error('❌ Error response:', error.response?.data);
+                        console.error('❌ Error status:', error.response?.status);
                         this.showNotification('Failed to update cart', 'error');
                         return { success: false, error: error.message };
                     } finally {
+                        console.log('🔄 Clearing loading state for item:', itemId);
                         this.setCartItemLoading(itemId, false);
                     }
                 },
@@ -968,8 +1007,27 @@
 
                     try {
                         this.setCartItemLoading(itemId, true);
+                        console.log('⏳ Set loading state for remove item:', itemId);
 
                         const token = window.JWT_TOKEN;
+                        if (!token) {
+                            console.error('❌ No JWT token available for cart removal');
+                            this.showNotification('Authentication required', 'error');
+                            return { success: false, error: 'No token' };
+                        }
+
+                        // Find the item in our current cart to verify it exists
+                        const existingItem = this.cartItems.find(item => item.id === itemId);
+                        console.log('🔍 Found item in current cart for removal:', existingItem);
+
+                        if (!existingItem) {
+                            console.error('❌ Item not found in current cart items:', itemId);
+                            console.error('📋 Available cart items:', this.cartItems.map(item => ({ id: item.id, name: item.name })));
+                            this.showNotification('Item not found in cart', 'error');
+                            return { success: false, error: 'Item not found locally' };
+                        }
+
+                        console.log('📤 Sending DELETE request to /api/cart/' + itemId);
                         const response = await axios.delete(`/api/cart/${itemId}`, {
                             headers: {
                                 'Authorization': 'Bearer ' + token,
@@ -977,16 +1035,26 @@
                             }
                         });
 
+                        console.log('📥 Cart remove response:', response.data);
+
                         if (response.data.success) {
+                            console.log('✅ Item removal successful, reloading cart...');
                             await this.loadCart(true);
                             this.showNotification('Item removed from cart', 'success', 3000);
                             return { success: true };
+                        } else {
+                            console.error('❌ Server returned success: false');
+                            this.showNotification(response.data.message || 'Removal failed', 'error');
+                            return { success: false, error: response.data.message };
                         }
                     } catch (error) {
                         console.error('❌ Remove item error:', error);
+                        console.error('❌ Error response:', error.response?.data);
+                        console.error('❌ Error status:', error.response?.status);
                         this.showNotification('Failed to remove item', 'error');
                         return { success: false, error: error.message };
                     } finally {
+                        console.log('🔄 Clearing loading state for remove item:', itemId);
                         this.setCartItemLoading(itemId, false);
                     }
                 },
@@ -1016,8 +1084,27 @@
 
                     try {
                         this.setCartItemLoading(itemId, true);
+                        console.log('⏳ Set loading state for remove item:', itemId);
 
                         const token = window.JWT_TOKEN;
+                        if (!token) {
+                            console.error('❌ No JWT token available for cart removal');
+                            this.showNotification('Authentication required', 'error');
+                            return { success: false, error: 'No token' };
+                        }
+
+                        // Find the item in our current cart to verify it exists
+                        const existingItem = this.cartItems.find(item => item.id === itemId);
+                        console.log('🔍 Found item in current cart for removal:', existingItem);
+
+                        if (!existingItem) {
+                            console.error('❌ Item not found in current cart items:', itemId);
+                            console.error('📋 Available cart items:', this.cartItems.map(item => ({ id: item.id, name: item.name })));
+                            this.showNotification('Item not found in cart', 'error');
+                            return { success: false, error: 'Item not found locally' };
+                        }
+
+                        console.log('📤 Sending DELETE request to /api/cart/' + itemId);
                         const response = await axios.delete(`/api/cart/${itemId}`, {
                             headers: {
                                 'Authorization': 'Bearer ' + token,
@@ -1025,16 +1112,26 @@
                             }
                         });
 
+                        console.log('📥 Cart remove response:', response.data);
+
                         if (response.data.success) {
+                            console.log('✅ Item removal successful, reloading cart...');
                             await this.loadCart(true);
                             this.showNotification('Item removed from cart', 'success', 3000);
                             return { success: true };
+                        } else {
+                            console.error('❌ Server returned success: false');
+                            this.showNotification(response.data.message || 'Removal failed', 'error');
+                            return { success: false, error: response.data.message };
                         }
                     } catch (error) {
                         console.error('❌ Remove item error:', error);
+                        console.error('❌ Error response:', error.response?.data);
+                        console.error('❌ Error status:', error.response?.status);
                         this.showNotification('Failed to remove item', 'error');
                         return { success: false, error: error.message };
                     } finally {
+                        console.log('🔄 Clearing loading state for remove item:', itemId);
                         this.setCartItemLoading(itemId, false);
                     }
                 },
@@ -1096,9 +1193,15 @@
                         try {
                             // Listen for order status updates
                             window.Echo.private(`user.${this.user.id}.orders`)
-                                .listen('.order.status.updated', (data) => {
+                                .listen('.order.status_changed', (data) => {
                                     console.log('📦 Order status updated:', data);
-                                    this.showNotification(`Order ${data.order_number} status updated to ${data.new_status}`, 'info');
+                                    this.showNotification(`Order ${data.order.order_number} status changed to ${data.new_status}`, 'info');
+
+                                    // Notify order detail page if open
+                                    if (window.orderDetailPage && window.orderDetailPage.handleOrderStatusUpdate) {
+                                        console.log('🔔 Notifying order detail page of status update');
+                                        window.orderDetailPage.handleOrderStatusUpdate(data);
+                                    }
 
                                     // Refresh page if on orders page
                                     if (window.location.pathname.includes('/orders')) {
@@ -1115,7 +1218,7 @@
                         if ((this.user.role === 'ADMIN' || this.user.role === 'MERCHANT') &&
                             window.Echo && typeof window.Echo.channel === 'function') {
                             try {
-                                window.Echo.channel('orders')
+                                window.Echo.channel('admin-orders')
                                     .listen('.order.created', (data) => {
                                         console.log('🔔 New order received:', data);
                                         this.addBellNotification(data);

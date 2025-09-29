@@ -238,6 +238,11 @@ Route::get('/test-css', function () {
     return view('test.css-test');
 });
 
+// Loading animation test
+Route::get('/test-loading', function () {
+    return view('test-loading');
+});
+
 // Debug route - remove in production
 Route::get('/debug-auth', function () {
     $user = \App\Models\User::where('email', 'kimpet@gmail.com')->first();
@@ -366,6 +371,22 @@ Route::get('/debug-session', function () {
         'user_data' => session('user_data'),
         'all_session' => session()->all()
     ]);
+});
+
+// Test tombol admin orders debug
+Route::get('/test-buttons', function () {
+    return view('test-buttons');
+});
+
+// Debug admin orders dengan data real
+Route::middleware(['web.auth', 'admin.auth'])->get('/debug-admin-orders', function () {
+    // Get real orders data like admin orders page
+    $orders = \App\Models\Order::with(['user', 'orderItems.product'])
+        ->orderBy('created_at', 'desc')
+        ->limit(10)
+        ->get();
+
+    return view('debug-admin-orders', compact('orders'));
 });
 
 // Test route to manually trigger order status update broadcast

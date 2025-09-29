@@ -2,14 +2,53 @@
 
 @section('title', 'Order Management - BellGas Admin')
 
+@section('head-scripts')
+<style>
+/* Custom CSS untuk memastikan animasi berputar bekerja */
+.custom-spin {
+    animation: custom-spin 1s linear infinite;
+}
+
+@keyframes custom-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Fallback jika TailwindCSS tidak ter-load */
+.animate-spin {
+    animation: custom-spin 1s linear infinite;
+}
+
+/* Debugging border untuk spinner */
+.debug-spinner {
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: custom-spin 1s linear infinite;
+}
+</style>
+@endsection
+
 @section('content')
 <div class="container mx-auto px-4 py-8" x-data="adminOrders()" x-init="init()">
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
         <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-800">Order Management</h1>
-                <p class="text-gray-600">Manage and track customer orders</p>
+            <div class="flex items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800 flex items-center">
+                        Order Management
+                        <div x-show="isLoading" class="debug-spinner h-6 w-6 ml-3" style="border-width: 2px; border-top-color: #3b82f6;"></div>
+                    </h1>
+                    <p class="text-gray-600">
+                        <span x-show="!isLoading">Manage and track customer orders</span>
+                        <span x-show="isLoading" class="text-blue-600">Loading latest orders...</span>
+                    </p>
+                </div>
             </div>
             
             <!-- Filters and Actions -->
@@ -38,6 +77,7 @@
                 </button>
             </div>
         </div>
+
 
         <!-- Order Statistics -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -90,6 +130,7 @@
             </div>
         </div>
 
+
         <!-- Orders Table -->
         <div class="bg-white rounded-lg shadow-md">
             <div class="p-6 border-b border-gray-200">
@@ -138,7 +179,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">$<span x-text="order.total_aud"></span></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div class="flex space-x-2">
+                                    <div class="flex flex-wrap items-center gap-2">
                                         <button @click="viewOrder(order)" class="text-indigo-600 hover:text-indigo-900">
                                             <i class="fas fa-eye"></i>
                                         </button>
@@ -150,32 +191,40 @@
                                         </span>
 
                                         <!-- Process Order Button (only for PAID orders) -->
-                                        <button x-show="order.status === 'PAID'" 
-                                                @click="processOrder(order)"
-                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition">
-                                            <i class="fas fa-cogs mr-1"></i>Process
+                                        <button x-show="order.status === 'PAID'"
+                                                @click="console.log('✅ Process clicked for order:', order.id, order); processOrder(order)"
+                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition cursor-pointer">
+                                            <span class="flex items-center">
+                                                <i class="fas fa-cogs mr-1"></i>
+                                                <span>Process</span>
+                                            </span>
                                         </button>
                                         
                                         <!-- Next Step Button (for PROCESSED orders) -->
                                         <button x-show="order.status === 'PROCESSED'"
-                                                @click="processNextStep(order)"
-                                                class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition">
-                                            <i class="fas fa-arrow-right mr-1"></i><span x-text="order.fulfillment_method === 'PICKUP' ? 'Ready for Pickup' : 'Ship Order'"></span>
+                                                @click="console.log('✅ Next step clicked for order:', order.id, order); processNextStep(order)"
+                                                class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition cursor-pointer">
+                                            <span class="flex items-center">
+                                                <i class="fas fa-arrow-right mr-1"></i>
+                                                <span x-text="order.fulfillment_method === 'PICKUP' ? 'Ready for Pickup' : 'Ship Order'"></span>
+                                            </span>
                                         </button>
 
                                         <!-- Complete Order Button (for WAITING_FOR_PICKUP/ON_DELIVERY/PICKED_UP orders) -->
                                         <button x-show="['WAITING_FOR_PICKUP', 'ON_DELIVERY', 'PICKED_UP'].includes(order.status)"
-                                                @click="completeOrder(order)"
-                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition">
-                                            <i class="fas fa-check-circle mr-1"></i><span x-text="order.status === 'WAITING_FOR_PICKUP' ? 'Mark Picked Up' : order.status === 'PICKED_UP' ? 'Complete Order' : 'Mark Delivered'"></span>
+                                                @click="console.log('✅ Complete clicked for order:', order.id, order); completeOrder(order)"
+                                                class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 transition flex items-center cursor-pointer">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            <span x-text="order.status === 'WAITING_FOR_PICKUP' ? 'Mark Picked Up' : order.status === 'PICKED_UP' ? 'Complete Order' : 'Mark Delivered'"></span>
                                         </button>
                                         
                                         <!-- Download Receipt Button (for PAID and processed orders) -->
-                                        <button x-show="['PAID', 'PROCESSED', 'DONE'].includes(order.status)" 
+                                        <button x-show="['PAID', 'PROCESSED', 'DONE'].includes(order.status)"
                                                 @click="downloadReceipt(order)"
                                                 class="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition ml-1">
                                             <i class="fas fa-receipt mr-1"></i>Receipt
                                         </button>
+
                                         
                                         <!-- Status Badges -->
                                         <span x-show="order.status === 'PROCESSED'" 
@@ -197,33 +246,57 @@
                                                 <div class="py-1">
                                                     <button x-show="order.status === 'PAID'"
                                                             @click="updateOrderStatus(order, 'PROCESSED'); open = false"
-                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                                                        Mark as Processed
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_PROCESSED`]"
+                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_PROCESSED`]" class="debug-spinner h-5 w-5 mr-2"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_PROCESSED`]) ? 'Processing...' : 'Mark as Processed'"></span>
+                                                        </div>
                                                     </button>
                                                     <button x-show="order.status === 'PROCESSED'"
                                                             @click="processNextStep(order); open = false"
-                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                                                        <span x-text="order.fulfillment_method === 'PICKUP' ? 'Ready for Pickup' : 'Ship Order'"></span>
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_${order.fulfillment_method === 'PICKUP' ? 'WAITING_FOR_PICKUP' : 'ON_DELIVERY'}`]"
+                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_${order.fulfillment_method === 'PICKUP' ? 'WAITING_FOR_PICKUP' : 'ON_DELIVERY'}`]" class="debug-spinner h-5 w-5 mr-2"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_${order.fulfillment_method === 'PICKUP' ? 'WAITING_FOR_PICKUP' : 'ON_DELIVERY'}`]) ? 'Updating...' : (order.fulfillment_method === 'PICKUP' ? 'Ready for Pickup' : 'Ship Order')"></span>
+                                                        </div>
                                                     </button>
                                                     <button x-show="order.status === 'WAITING_FOR_PICKUP'"
                                                             @click="updateOrderStatus(order, 'PICKED_UP'); open = false"
-                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                                                        Mark as Picked Up
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_PICKED_UP`]"
+                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_PICKED_UP`]" class="debug-spinner h-5 w-5 mr-2"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_PICKED_UP`]) ? 'Updating...' : 'Mark as Picked Up'"></span>
+                                                        </div>
                                                     </button>
                                                     <button x-show="order.status === 'PICKED_UP'"
                                                             @click="updateOrderStatus(order, 'DONE'); open = false"
-                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                                                        Complete Order
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_DONE`]"
+                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_DONE`]" class="debug-spinner h-5 w-5 mr-2"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_DONE`]) ? 'Completing...' : 'Complete Order'"></span>
+                                                        </div>
                                                     </button>
                                                     <button x-show="order.status === 'ON_DELIVERY'"
                                                             @click="updateOrderStatus(order, 'DONE'); open = false"
-                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
-                                                        Mark as Delivered
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_DONE`]"
+                                                            class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_DONE`]" class="debug-spinner h-5 w-5 mr-2"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_DONE`]) ? 'Updating...' : 'Mark as Delivered'"></span>
+                                                        </div>
                                                     </button>
                                                     <button x-show="['PICKED_UP', 'DONE'].includes(order.status) === false"
                                                             @click="updateOrderStatus(order, 'CANCELLED'); open = false"
-                                                            class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">
-                                                        Cancel Order
+                                                            :disabled="updatingOrders && updatingOrders[`${order.id}_CANCELLED`]"
+                                                            class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left disabled:opacity-50 cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed">
+                                                        <div class="flex items-center">
+                                                            <div x-show="updatingOrders && updatingOrders[`${order.id}_CANCELLED`]" class="debug-spinner h-5 w-5 mr-2" style="border-top-color: #ef4444;"></div>
+                                                            <span x-text="(updatingOrders && updatingOrders[`${order.id}_CANCELLED`]) ? 'Cancelling...' : 'Cancel Order'"></span>
+                                                        </div>
                                                     </button>
                                                 </div>
                                             </div>
@@ -289,6 +362,43 @@
             </div>
         </div>
     </div>
+
+    <!-- Loading Modal -->
+    <div x-show="showLoadingModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div x-show="showLoadingModal"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 transform scale-100"
+             x-transition:leave-end="opacity-0 transform scale-95"
+             class="bg-white rounded-lg shadow-xl p-8 max-w-md mx-4">
+            <div class="text-center">
+                <!-- Spinner -->
+                <div class="mx-auto mb-4">
+                    <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+                </div>
+
+                <!-- Loading Message -->
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Processing...</h3>
+                <p class="text-gray-600" x-text="loadingMessage"></p>
+
+                <!-- Progress Indicator -->
+                <div class="mt-4">
+                    <div class="bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full animate-pulse w-full"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -307,6 +417,10 @@ function adminOrders() {
         selectedOrder: null,
         lastSoundPlayed: null, // Prevent repeated notification sounds
         lastUpdateTimestamp: null,
+        updatingOrders: {}, // Track which orders are being updated
+        isLoading: false, // Track if data is being loaded
+        showLoadingModal: false, // Track loading popup
+        loadingMessage: '', // Message untuk loading popup
         
         async init() {
             await this.loadOrders();
@@ -315,20 +429,33 @@ function adminOrders() {
         
         async loadOrders() {
             try {
+                this.isLoading = true;
+                console.log('🔄 Loading orders...');
+
+                // Add cache-busting parameter to prevent stale data
+                const timestamp = new Date().getTime();
                 const response = await axios.get('/web/admin/orders/stats', {
+                    params: {
+                        _t: timestamp, // Cache-busting parameter
+                        force_refresh: true
+                    },
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
                     }
                 });
                 this.orders = response.data.orders || [];
                 this.filteredOrders = this.orders;
                 this.calculateStats();
-                console.log('📋 Orders loaded:', this.orders.length, 'orders');
+                console.log('✅ Orders loaded:', this.orders.length, 'orders at', new Date().toLocaleTimeString());
             } catch (error) {
-                console.error('Failed to load orders:', error);
+                console.error('❌ Failed to load orders:', error);
                 this.showNotification('Failed to load orders: ' + (error.response?.data?.message || error.message), 'error');
+            } finally {
+                this.isLoading = false;
             }
         },
         
@@ -362,7 +489,13 @@ function adminOrders() {
         },
         
         async updateOrderStatus(order, newStatus) {
+            const orderKey = `${order.id}_${newStatus}`;
+
             try {
+                // Set loading state
+                this.updatingOrders[orderKey] = true;
+                console.log('🔄 Loading state set for:', orderKey, 'State:', this.updatingOrders);
+
                 console.log('Updating order:', order.order_number, 'to status:', newStatus);
 
                 const response = await axios.put(`/web/admin/orders/${order.order_number}`, {
@@ -380,15 +513,33 @@ function adminOrders() {
                 Object.assign(order, updatedOrder);
 
                 this.calculateStats();
-                this.showNotification(`Order ${order.order_number} updated to ${newStatus}`, 'success');
-
-                // Refresh the entire orders list to ensure consistency
-                await this.loadOrders();
 
             } catch (error) {
                 console.error('Failed to update order status:', error);
                 console.error('Error details:', error.response?.data);
-                this.showNotification('Failed to update order status: ' + (error.response?.data?.message || error.message), 'error');
+
+                // Show detailed error message for debugging
+                let errorMessage = 'Failed to update order status';
+                if (error.response?.data) {
+                    const errorData = error.response.data;
+                    if (errorData.message) {
+                        errorMessage = errorData.message;
+                    }
+
+                    // Show additional debugging info for 400 errors
+                    if (error.response.status === 400 && errorData.current_status && errorData.available_statuses) {
+                        errorMessage += `\n\nCurrent: ${errorData.current_status}\nTried: ${errorData.attempted_status}\nAvailable: ${errorData.available_statuses.join(', ')}`;
+                        console.error('Status transition error details:', errorData);
+                    }
+                } else {
+                    errorMessage += ': ' + error.message;
+                }
+
+                this.showNotification(errorMessage, 'error');
+            } finally {
+                // Clear loading state
+                delete this.updatingOrders[orderKey];
+                console.log('✅ Loading state cleared for:', orderKey, 'Final state:', this.updatingOrders);
             }
         },
         
@@ -409,9 +560,19 @@ function adminOrders() {
                     return;
                 }
 
+                // Show loading popup
+                this.showLoadingModal = true;
+                this.loadingMessage = `Processing order ${order.order_number}...`;
+
                 await this.updateOrderStatus(order, 'PROCESSED');
 
+                // Hide loading popup
+                this.showLoadingModal = false;
+                this.showNotification(`Order ${order.order_number} processed successfully!`, 'success');
+
             } catch (error) {
+                // Hide loading popup on error
+                this.showLoadingModal = false;
                 console.error('Failed to process order:', error);
                 this.showNotification('Failed to process order: ' + (error.response?.data?.message || error.message), 'error');
             }
@@ -428,9 +589,19 @@ function adminOrders() {
                     return;
                 }
 
+                // Show loading popup
+                this.showLoadingModal = true;
+                this.loadingMessage = `Updating order ${order.order_number} to ${action}...`;
+
                 await this.updateOrderStatus(order, nextStatus);
 
+                // Hide loading popup
+                this.showLoadingModal = false;
+                this.showNotification(`Order ${order.order_number} marked as ${action}!`, 'success');
+
             } catch (error) {
+                // Hide loading popup on error
+                this.showLoadingModal = false;
                 console.error('Failed to process next step:', error);
                 this.showNotification('Failed to process order: ' + (error.response?.data?.message || error.message), 'error');
             }
@@ -457,9 +628,19 @@ function adminOrders() {
                     return;
                 }
 
+                // Show loading popup
+                this.showLoadingModal = true;
+                this.loadingMessage = `Marking order ${order.order_number} as ${action}...`;
+
                 await this.updateOrderStatus(order, nextStatus);
 
+                // Hide loading popup
+                this.showLoadingModal = false;
+                this.showNotification(`Order ${order.order_number} marked as ${action}!`, 'success');
+
             } catch (error) {
+                // Hide loading popup on error
+                this.showLoadingModal = false;
                 console.error('Failed to complete order:', error);
                 this.showNotification('Failed to complete order: ' + (error.response?.data?.message || error.message), 'error');
             }
@@ -584,11 +765,99 @@ function adminOrders() {
             // Always use polling for admin orders for reliability
             this.fallbackToPolling();
 
-            // Also try to connect to WebSocket for instant updates
-            if (window.app && window.app.echo) {
-                console.log('✅ Also connecting to WebSocket for instant notifications');
+            // Set up WebSocket listeners for real-time events
+            this.setupWebSocketListeners();
+        },
+
+        setupWebSocketListeners() {
+            if (window.Echo && typeof window.Echo.channel === 'function') {
+                console.log('✅ Setting up WebSocket listeners for admin orders...');
+
+                // Listen for new orders on admin-orders channel
+                window.Echo.channel('admin-orders')
+                    .listen('.order.created', (data) => {
+                        console.log('🔔 New order created:', data);
+                        this.handleNewOrder(data);
+                    })
+                    .listen('.order.status_changed', (data) => {
+                        console.log('🔄 Order status changed:', data);
+                        this.handleOrderStatusChange(data);
+                    })
+                    .listen('.order.updated', (data) => {
+                        console.log('📝 Order updated:', data);
+                        this.handleOrderUpdate(data);
+                    });
+
+                // Listen for real-time stats updates on public channel
+                window.Echo.channel('public-admin-orders')
+                    .listen('.order.created', (data) => {
+                        console.log('📊 Stats update from new order');
+                        this.refreshStats();
+                    })
+                    .listen('.order.status_changed', (data) => {
+                        console.log('📊 Stats update from status change');
+                        this.refreshStats();
+                    });
+
+                console.log('✅ WebSocket listeners set up successfully');
             } else {
                 console.log('⚠️ WebSocket not available, using polling only');
+            }
+        },
+
+        handleNewOrder(data) {
+            // Show notification for new order
+            this.showNotification(`New order #${data.order.order_number} from ${data.order.customer_name}`, 'success');
+
+            // Play notification sound
+            this.playNotificationSound('new-order');
+
+            // Refresh orders list to include new order
+            this.loadOrders();
+        },
+
+        handleOrderStatusChange(data) {
+            // Show notification for status change
+            this.showNotification(`Order #${data.order.order_number} status changed to ${data.new_status}`, 'info');
+
+            // Update the specific order in the list if it exists
+            this.updateOrderInList(data.order);
+
+            // Refresh stats
+            this.calculateStats();
+        },
+
+        handleOrderUpdate(data) {
+            // Show notification for general update
+            this.showNotification(`Order #${data.order.order_number} has been updated`, 'info');
+
+            // Update the specific order in the list
+            this.updateOrderInList(data.order);
+        },
+
+        updateOrderInList(updatedOrder) {
+            const index = this.orders.findIndex(order => order.id === updatedOrder.id);
+            if (index !== -1) {
+                this.orders[index] = { ...this.orders[index], ...updatedOrder };
+                this.filterOrders(); // Re-apply filters
+                console.log(`📝 Updated order #${updatedOrder.order_number} in list`);
+            }
+        },
+
+        async refreshStats() {
+            try {
+                const response = await axios.get('/web/admin/dashboard/stats', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.data.success) {
+                    this.stats = response.data.data;
+                }
+            } catch (error) {
+                console.error('Failed to refresh stats:', error);
             }
         },
 
@@ -617,12 +886,15 @@ function adminOrders() {
                 // Use web-based route with session authentication
                 const response = await axios.get('/web/admin/realtime/orders', {
                     params: {
-                        since: this.lastUpdateTimestamp
+                        since: this.lastUpdateTimestamp,
+                        _t: new Date().getTime() // Cache-busting
                     },
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache'
                     },
                     withCredentials: true
                 });

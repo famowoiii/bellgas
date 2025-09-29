@@ -14,6 +14,7 @@ use App\Models\Product;
 use App\Mail\OrderConfirmation;
 use App\Notifications\OrderStatusChanged;
 use App\Services\OrderStatusService;
+use App\Events\OrderUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -150,6 +151,9 @@ class OrderController extends Controller
 
             $order->load(['items.productVariant.product.photos', 'address']);
 
+            // Broadcast real-time order creation event
+            broadcast(new OrderUpdated($order, 'created'))->toOthers();
+
             // Send order confirmation email
             try {
                 Mail::to($user->email)->send(new OrderConfirmation($order));
@@ -245,7 +249,10 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Invalid status transition',
-                    'available_statuses' => $this->orderStatusService->getAvailableStatuses($order)
+                    'current_status' => $oldStatus,
+                    'attempted_status' => $newStatus,
+                    'available_statuses' => $this->orderStatusService->getAvailableStatuses($order),
+                    'fulfillment_method' => $order->fulfillment_method
                 ], 400);
             }
 
@@ -255,30 +262,44 @@ class OrderController extends Controller
             }
 
             if ($newStatus === 'CANCELLED' && $oldStatus !== 'CANCELLED') {
+                // Batch update stock quantities for better performance
+                $stockUpdates = [];
                 foreach ($order->items as $item) {
-                    $item->productVariant->increment('stock_quantity', $item->quantity);
+                    $stockUpdates[$item->product_variant_id] = ($stockUpdates[$item->product_variant_id] ?? 0) + $item->quantity;
                 }
 
-                // Clean up stock reservations for cancelled order
+                foreach ($stockUpdates as $variantId => $quantity) {
+                    ProductVariant::where('id', $variantId)->increment('stock_quantity', $quantity);
+                }
+
+                // Clean up stock reservations efficiently
+                $productVariantIds = $order->items()->pluck('product_variant_id')->toArray();
                 StockReservation::where('user_id', $order->user_id)
-                    ->whereIn('product_variant_id', $order->items()->pluck('product_variant_id'))
+                    ->whereIn('product_variant_id', $productVariantIds)
                     ->delete();
             }
 
             DB::commit();
 
-            // Defer heavy operations after response
+            // Only load minimal data needed for response first
+            $order->load(['user:id,first_name,last_name,email', 'items:id,order_id,quantity,total_price_aud']);
+
+            // Defer heavy operations after response to avoid blocking
             defer(function () use ($order, $oldStatus, $newStatus) {
-                // Send status change notification asynchronously
                 try {
+                    // Load full relationships for broadcasting only when needed
+                    $orderForBroadcast = Order::with(['items.productVariant.product', 'address', 'user'])
+                        ->find($order->id);
+
+                    // Broadcast real-time order status update event
+                    broadcast(new OrderUpdated($orderForBroadcast, 'status_changed', $oldStatus, $newStatus))->toOthers();
+
+                    // Send status change notification asynchronously
                     $order->user->notify(new OrderStatusChanged($order, $oldStatus, $newStatus));
                 } catch (\Exception $e) {
-                    \Log::warning('Failed to send order status notification: ' . $e->getMessage());
+                    \Log::warning('Failed to send order status notification or broadcast: ' . $e->getMessage());
                 }
             });
-
-            // Only load minimal data needed for response
-            $order->load(['user:id,first_name,last_name,email', 'items:id,order_id,quantity,total_price_aud']);
 
             return response()->json([
                 'success' => true,
@@ -598,7 +619,10 @@ class OrderController extends Controller
             DB::commit();
 
             // Load order with relationships
-            $order->load(['items.productVariant.product.photos', 'address', 'events']);
+            $order->load(['items.productVariant.product.photos', 'address', 'events', 'user']);
+
+            // Broadcast real-time payment confirmation event
+            broadcast(new OrderUpdated($order, 'status_changed', 'PENDING', 'PAID'))->toOthers();
 
             return response()->json([
                 'success' => true,
@@ -618,6 +642,137 @@ class OrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to confirm payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get real-time order updates for admin dashboard
+     */
+    public function realtimeUpdates(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!in_array($user->role, ['ADMIN', 'MERCHANT'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        try {
+            $since = $request->get('since');
+            $query = Order::with(['items.productVariant.product', 'address', 'user'])
+                ->orderBy('updated_at', 'desc');
+
+            // Filter orders updated since given timestamp
+            if ($since) {
+                $query->where('updated_at', '>', $since);
+            } else {
+                // If no timestamp provided, get recent orders from last 10 minutes
+                $query->where('updated_at', '>', now()->subMinutes(10));
+            }
+
+            $updatedOrders = $query->get()->map(function ($order) {
+                $order->status_info = $this->orderStatusService->getStatusInfo($order->status, $order->fulfillment_method);
+                $order->admin_action = $this->orderStatusService->getAdminAction($order);
+                return $order;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $updatedOrders,
+                'timestamp' => now()->toISOString(),
+                'count' => $updatedOrders->count()
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Real-time orders update failed', [
+                'error' => $e->getMessage(),
+                'since' => $since ?? 'null'
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get real-time updates: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export orders data
+     */
+    public function export(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!in_array($user->role, ['ADMIN', 'MERCHANT'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 403);
+        }
+
+        try {
+            $orders = Order::with(['items.productVariant.product', 'address', 'user'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $csvData = [];
+            $csvData[] = [
+                'Order Number',
+                'Customer Name',
+                'Customer Email',
+                'Status',
+                'Fulfillment Method',
+                'Total AUD',
+                'Created At',
+                'Updated At',
+                'Address',
+                'Items'
+            ];
+
+            foreach ($orders as $order) {
+                $items = $order->items->map(function($item) {
+                    return $item->productVariant->product->name . ' (' . $item->quantity . 'x)';
+                })->join(', ');
+
+                $csvData[] = [
+                    $order->order_number,
+                    $order->user->first_name . ' ' . $order->user->last_name,
+                    $order->user->email,
+                    $order->status,
+                    $order->fulfillment_method,
+                    number_format($order->total_aud, 2),
+                    $order->created_at->format('Y-m-d H:i:s'),
+                    $order->updated_at->format('Y-m-d H:i:s'),
+                    $order->address ? $order->address->full_address : 'N/A',
+                    $items
+                ];
+            }
+
+            $filename = 'orders_export_' . now()->format('Y_m_d_H_i_s') . '.csv';
+
+            $handle = fopen('php://temp', 'r+');
+            foreach ($csvData as $row) {
+                fputcsv($handle, $row);
+            }
+            rewind($handle);
+            $csv = stream_get_contents($handle);
+            fclose($handle);
+
+            return response($csv)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+        } catch (\Exception $e) {
+            \Log::error('Order export failed', [
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export orders: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -98,8 +98,15 @@ class OrderStatusService
         $saved = $order->save();
 
         if ($saved) {
-            // Fire event for real-time updates
-            event(new OrderStatusUpdated($order, $previousStatus, $newStatus));
+            // Defer heavy operations to avoid blocking the response
+            defer(function () use ($order, $previousStatus, $newStatus, $metadata) {
+                try {
+                    // Fire event for real-time updates
+                    event(new OrderStatusUpdated($order, $previousStatus, $newStatus));
+                } catch (\Exception $e) {
+                    Log::warning('Failed to fire OrderStatusUpdated event: ' . $e->getMessage());
+                }
+            });
 
             Log::info('Order status updated successfully', [
                 'order_id' => $order->id,
@@ -119,11 +126,19 @@ class OrderStatusService
      */
     private function hasFullTankItems(Order $order): bool
     {
-        return $order->items()
-            ->whereHas('productVariant.product', function ($query) {
-                $query->where('category', 'FULL_TANK');
-            })
-            ->exists();
+        // Cache this check since it might be called multiple times for the same order
+        static $cache = [];
+        $cacheKey = 'full_tank_' . $order->id;
+
+        if (!isset($cache[$cacheKey])) {
+            $cache[$cacheKey] = $order->items()
+                ->whereHas('productVariant.product', function ($query) {
+                    $query->where('category', 'FULL_TANK');
+                })
+                ->exists();
+        }
+
+        return $cache[$cacheKey];
     }
 
     /**

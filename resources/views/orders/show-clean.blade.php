@@ -226,9 +226,15 @@
             console.log('🔄 Processing order status update:', event);
 
             // Check if this update is for the current order
-            // Event data comes from OrderStatusUpdated broadcastWith() method
-            if (event.order_number === orderId) {
-                console.log(`✅ Status update for current order ${orderId}: ${event.previous_status} → ${event.new_status}`);
+            // Event data comes from OrderUpdated broadcastWith() method
+            const eventOrderId = event.order?.id || event.order_id;
+            const eventOrderNumber = event.order?.order_number || event.order_number;
+
+            if (eventOrderId == orderId || eventOrderNumber === orderId) {
+                console.log(`✅ Status update for current order ${orderId}: ${event.old_status} → ${event.new_status}`);
+
+                // Show notification about the status change
+                showNotification(`Order status updated to ${event.new_status}`, 'info');
 
                 // Immediately update the order status display
                 updateOrderStatus(event.new_status);
