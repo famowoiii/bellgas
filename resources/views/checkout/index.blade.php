@@ -5,6 +5,25 @@
 @push('head-scripts')
 <!-- Stripe.js - Only load on checkout page -->
 <script src="https://js.stripe.com/v3/"></script>
+<!-- Alpine.js cloak styling -->
+<style>
+[x-cloak] { display: none !important; }
+
+/* Fallback untuk tombol jika Alpine.js gagal */
+button[data-testid="place-order-btn"]:empty::after {
+    content: "🛒 Place Order";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+/* Pastikan tombol minimal punya tinggi */
+button[data-testid="place-order-btn"] {
+    min-height: 48px;
+}
+</style>
 <!-- Set user data from backend -->
 <script>
 window.checkoutUser = @json($user ?? null);
@@ -334,20 +353,12 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
                         </div>
                     </div>
 
-                    <!-- Place Order Button -->
-                    <button x-show="user && cart.length > 0"
-                            @click="placeOrder()"
-                            :disabled="!canPlaceOrder || loading"
+                    <!-- Place Order Button - Always Visible -->
+                    <button @click="placeOrder()"
                             class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             data-testid="place-order-btn">
-                        <span x-show="!loading">
-                            <i class="fas fa-credit-card mr-2"></i>
-                            Place Order - $<span x-text="total"></span>
-                        </span>
-                        <span x-show="loading">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>
-                            Processing...
-                        </span>
+                        <i class="fas fa-credit-card mr-2"></i>
+                        <span>Place Order - $</span><span x-text="total">0.00</span>
                     </button>
                 </div>
             </div>
@@ -567,11 +578,13 @@ function checkoutPage() {
                 const loadTime = Date.now() - startTime;
                 console.log(`✅ Parallel initialization completed in ${loadTime}ms`);
                 
-                // Load addresses and setup Stripe if authenticated
+                // Setup Stripe if authenticated and skip address loading for now
                 if (this.user) {
-                    const addressPromise = this.loadAddresses();
                     this.setupStripe(); // This is synchronous
-                    await addressPromise;
+                    // Skip address loading temporarily due to timeout issues
+                    console.log('⚠️ Address loading disabled temporarily - user can add new address');
+                    this.addressesLoading = false;
+                    this.addressesError = 'Address loading temporarily disabled. Please add a new address below.';
                 }
                 
                 this.updateOrderItems();
@@ -764,10 +777,12 @@ function checkoutPage() {
                     // Set up items from order
                     this.form.items = this.currentOrder.items || [];
                     
-                    // Load addresses and setup Stripe
+                    // Setup Stripe and skip address loading
                     if (this.user) {
-                        await this.loadAddresses();
                         this.setupStripe();
+                        // Skip address loading temporarily
+                        console.log('⚠️ Address loading disabled for existing orders');
+                        this.addressesLoading = false;
                     }
                     
                     // Create payment intent for UNPAID orders
@@ -834,12 +849,35 @@ function checkoutPage() {
 
             try {
                 const startTime = Date.now();
-                const response = await axios.get('/api/addresses', {
-                    timeout: 15000, // 15 second timeout
-                    headers: {
-                        'Accept': 'application/json'
+
+                // Try web route first (session-based)
+                let response;
+                try {
+                    response = await axios.get('/web/addresses', {
+                        timeout: 5000, // 5 second timeout
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                } catch (webError) {
+                    console.warn('⚠️ Web addresses failed, trying API route:', webError.message);
+
+                    // Fallback to API route with JWT
+                    const token = localStorage.getItem('access_token') || localStorage.getItem('jwt_token');
+                    if (token) {
+                        response = await axios.get('/api/addresses', {
+                            timeout: 5000,
+                            headers: {
+                                'Accept': 'application/json',
+                                'Authorization': 'Bearer ' + token
+                            }
+                        });
+                    } else {
+                        throw webError; // Re-throw original error if no token
                     }
-                });
+                }
 
                 const loadTime = Date.now() - startTime;
                 console.log(`✅ Addresses loaded in ${loadTime}ms`);
@@ -856,23 +894,12 @@ function checkoutPage() {
                 this.addressesLoading = false;
             } catch (error) {
                 console.error('❌ Failed to load addresses:', error);
-                this.addressesError = error.response?.data?.message || error.message || 'Failed to load addresses';
+                this.addressesError = 'Unable to load saved addresses. You can still add a new address below.';
                 this.addressesLoading = false;
-
-                // Retry mechanism for network issues
-                if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-                    console.log('⏳ Address loading timed out, setting up retry...');
-                    setTimeout(() => {
-                        if (!this.addresses.length && this.user) {
-                            console.log('🔄 Auto-retrying address loading...');
-                            this.loadAddresses();
-                        }
-                    }, 3000);
-                }
 
                 // Show user-friendly notification
                 if (window.app?.showNotification) {
-                    window.app.showNotification('Loading addresses... Please wait or refresh if needed.', 'warning');
+                    window.app.showNotification('Could not load saved addresses. You can add a new address.', 'info');
                 }
             }
         },
@@ -880,7 +907,13 @@ function checkoutPage() {
         async addAddress() {
             this.addingAddress = true;
             try {
-                const response = await axios.post('/api/addresses', this.newAddress);
+                const response = await axios.post('/web/addresses', this.newAddress, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
                 this.addresses.push(response.data.data);
                 this.form.address_id = response.data.data.id;
                 this.showAddressForm = false;
@@ -909,7 +942,7 @@ function checkoutPage() {
         },
         
         setupStripe() {
-            this.stripe = Stripe('{{ config('services.stripe.public') }}');
+            this.stripe = Stripe('{{ config("services.stripe.public") }}');
             
             const elements = this.stripe.elements();
             this.cardElement = elements.create('card', {
@@ -1193,27 +1226,43 @@ function checkoutPage() {
         mountCardElement() {
             try {
                 const cardElementContainer = document.getElementById('card-element');
-                
+
+                if (!cardElementContainer) {
+                    console.error('❌ Card element container not found');
+                    return;
+                }
+
+                if (!this.cardElement) {
+                    console.error('❌ Card element not initialized');
+                    return;
+                }
+
                 // Clear any existing content
-                if (cardElementContainer) {
-                    cardElementContainer.innerHTML = '';
-                }
-                
+                cardElementContainer.innerHTML = '';
+
                 // Unmount existing element if attached
-                if (this.cardElement && this.cardElement._attached) {
-                    console.log('🔄 Unmounting existing card element');
-                    this.cardElement.unmount();
+                try {
+                    if (this.cardElement._attached) {
+                        console.log('🔄 Unmounting existing card element');
+                        this.cardElement.unmount();
+                    }
+                } catch (unmountError) {
+                    console.warn('⚠️ Error unmounting card element:', unmountError);
                 }
-                
+
                 // Mount fresh card element
-                if (this.cardElement && cardElementContainer) {
-                    console.log('🔧 Mounting card element');
-                    this.cardElement.mount('#card-element');
-                } else {
-                    console.warn('⚠️ Card element or container not available');
-                }
+                console.log('🔧 Mounting card element');
+                this.cardElement.mount('#card-element');
+                console.log('✅ Card element mounted successfully');
+
             } catch (error) {
                 console.error('❌ Error mounting card element:', error);
+
+                // Show user-friendly error
+                const cardErrors = document.getElementById('card-errors');
+                if (cardErrors) {
+                    cardErrors.textContent = 'Failed to load payment form. Please refresh the page and try again.';
+                }
             }
         }
     }

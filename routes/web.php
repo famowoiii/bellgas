@@ -157,6 +157,24 @@ Route::middleware(['web.auth'])->prefix('web')->group(function () {
         ->name('web.customer.dashboard.stats');
     Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index'])
         ->name('web.customer.orders');
+
+    // Customer addresses (session-based)
+    Route::get('/addresses', [\App\Http\Controllers\Api\AddressController::class, 'index'])
+        ->name('web.customer.addresses');
+    Route::post('/addresses', [\App\Http\Controllers\Api\AddressController::class, 'store'])
+        ->name('web.customer.addresses.store');
+
+    // Admin order management routes (session-based auth)
+    Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
+        Route::get('/orders/stats', [\App\Http\Controllers\Api\OrderController::class, 'stats'])
+            ->name('web.admin.orders.stats');
+        Route::get('/orders/export', [\App\Http\Controllers\Api\OrderController::class, 'export'])
+            ->name('web.admin.orders.export');
+        Route::get('/realtime/orders', [\App\Http\Controllers\Api\OrderController::class, 'realtimeUpdates'])
+            ->name('web.admin.realtime.orders');
+        Route::put('/orders/{order}', [\App\Http\Controllers\Api\OrderController::class, 'update'])
+            ->name('web.admin.orders.update');
+    });
 });
 
 // Admin Routes (require admin authentication)

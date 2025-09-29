@@ -315,7 +315,13 @@ function adminOrders() {
         
         async loadOrders() {
             try {
-                const response = await axios.get('/api/orders/admin/stats');
+                const response = await axios.get('/web/admin/orders/stats', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
                 this.orders = response.data.orders || [];
                 this.filteredOrders = this.orders;
                 this.calculateStats();
@@ -359,8 +365,14 @@ function adminOrders() {
             try {
                 console.log('Updating order:', order.order_number, 'to status:', newStatus);
 
-                const response = await axios.put(`/api/orders/${order.order_number}`, {
+                const response = await axios.put(`/web/admin/orders/${order.order_number}`, {
                     status: newStatus
+                }, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
 
                 // Update the local order object with the response data
@@ -512,8 +524,13 @@ function adminOrders() {
         
         async exportOrders() {
             try {
-                const response = await axios.get('/api/admin/orders/export', {
-                    responseType: 'blob'
+                const response = await axios.get('/web/admin/orders/export', {
+                    responseType: 'blob',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 });
                 
                 const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -598,13 +615,14 @@ function adminOrders() {
         async checkForUpdates() {
             try {
                 // Use web-based route with session authentication
-                const response = await axios.get('/web/realtime/orders', {
+                const response = await axios.get('/web/admin/realtime/orders', {
                     params: {
                         since: this.lastUpdateTimestamp
                     },
                     headers: {
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     withCredentials: true
                 });
