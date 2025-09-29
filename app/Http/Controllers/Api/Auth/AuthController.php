@@ -19,13 +19,14 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         try {
+            // Force all public registrations to be CUSTOMER role only
             $user = User::create([
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'phone_number' => $request->phone_number,
-                'role' => $request->role ?? 'CUSTOMER',
+                'role' => 'CUSTOMER', // Always CUSTOMER for public registration
                 'is_active' => true,
             ]);
 

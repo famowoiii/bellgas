@@ -52,6 +52,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Weight</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -77,6 +78,9 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="product.category || 'N/A'"></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span x-text="product.weight_kg ? product.weight_kg + ' kg' : 'N/A'"></span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                     $<span x-text="product.price || '0.00'"></span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -87,11 +91,17 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex space-x-2">
-                                        <button @click="editProduct(product)" class="text-indigo-600 hover:text-indigo-900">
+                                        <button @click="editProduct(product)" :disabled="saving || deleting"
+                                                class="text-indigo-600 hover:text-indigo-900 disabled:opacity-50 disabled:cursor-not-allowed">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button @click="deleteProduct(product)" class="text-red-600 hover:text-red-900">
-                                            <i class="fas fa-trash"></i>
+                                        <button @click="deleteProduct(product)" :disabled="saving || deleting"
+                                                class="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed relative">
+                                            <i x-show="!deleting" class="fas fa-trash"></i>
+                                            <svg x-show="deleting" class="animate-spin h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
                                         </button>
                                     </div>
                                 </td>
@@ -111,7 +121,18 @@
 
     <!-- Add/Edit Product Modal -->
     <div x-show="showAddModal || showEditModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
+        <!-- Loading Overlay -->
+        <div x-show="saving" class="absolute inset-0 bg-black bg-opacity-25 flex items-center justify-center z-10">
+            <div class="bg-white rounded-lg p-6 flex items-center space-x-3">
+                <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="text-gray-700 font-medium" x-text="showAddModal ? 'Creating product...' : 'Updating product...'"></span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto" :class="saving ? 'pointer-events-none' : ''">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex justify-between items-center">
                     <h3 class="text-lg font-semibold" x-text="showAddModal ? 'Add New Product' : 'Edit Product'"></h3>
@@ -125,9 +146,14 @@
                 <form @submit.prevent="saveProduct()">
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
                             <input type="text" x-model="productForm.name" required
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                   @input="validateField('name')"
+                                   :class="validationErrors.name ?
+                                          'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                          'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'"
+                                   placeholder="Enter product name (min 3 characters)">
+                            <div x-show="validationErrors.name" class="text-red-500 text-sm mt-1" x-text="validationErrors.name"></div>
                         </div>
 
                         <div>
@@ -138,40 +164,62 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
                                 <select x-model="productForm.category_id" required
-                                        class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                        @change="validateField('category_id')"
+                                        :class="validationErrors.category_id ?
+                                               'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                               'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'">
                                     <option value="">Select Category</option>
                                     <option value="1">Refill</option>
                                     <option value="2">Full Tank</option>
                                 </select>
+                                <div x-show="validationErrors.category_id" class="text-red-500 text-sm mt-1" x-text="validationErrors.category_id"></div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Price (AUD)</label>
-                                <input type="number" step="0.01" min="0" x-model="productForm.price" required
-                                       class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Price (AUD) *</label>
+                                <input type="number" step="0.01" min="0" max="999999.99" x-model="productForm.price" required
+                                       @input="validateField('price')"
+                                       :class="validationErrors.price ?
+                                              'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                              'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'"
+                                       placeholder="0.00">
+                                <div x-show="validationErrors.price" class="text-red-500 text-sm mt-1" x-text="validationErrors.price"></div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity</label>
-                                <input type="number" x-model="productForm.stock" min="0" required
-                                       class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Stock Quantity *</label>
+                                <input type="number" x-model="productForm.stock" min="0" max="999999" required
+                                       @input="validateField('stock')"
+                                       :class="validationErrors.stock ?
+                                              'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                              'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'"
+                                       placeholder="0">
+                                <div x-show="validationErrors.stock" class="text-red-500 text-sm mt-1" x-text="validationErrors.stock"></div>
                             </div>
 
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Weight (kg)</label>
-                                <input type="number" step="0.1" x-model="productForm.weight"
-                                       class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                <input type="number" step="0.1" min="0" max="1000" x-model="productForm.weight"
+                                       :class="validationErrors.weight ?
+                                              'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                              'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'"
+                                       placeholder="0.0">
+                                <div x-show="validationErrors.weight" class="text-red-500 text-sm mt-1" x-text="validationErrors.weight"></div>
                             </div>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
                             <input type="file" @change="handleImageChange" accept="image/*"
-                                   class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                                   :class="validationErrors.image ?
+                                          'w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-red-500 focus:border-red-500' :
+                                          'w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500'">
+                            <p class="text-sm text-gray-500 mt-1">Max 2MB. Supported: JPEG, PNG, GIF, SVG</p>
+                            <div x-show="validationErrors.image" class="text-red-500 text-sm mt-1" x-text="validationErrors.image"></div>
                             <div x-show="imagePreview" class="mt-2">
                                 <img :src="imagePreview" class="w-32 h-32 object-cover rounded border">
                             </div>
@@ -185,13 +233,22 @@
                     </div>
 
                     <div class="flex justify-end space-x-3 mt-6">
-                        <button type="button" @click="closeModals()"
-                                class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition">
+                        <button type="button" @click="closeModals()" :disabled="saving"
+                                class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50 transition disabled:opacity-50">
                             Cancel
                         </button>
-                        <button type="submit"
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
-                            <span x-text="showAddModal ? 'Add Product' : 'Update Product'"></span>
+                        <button type="submit" :disabled="saving"
+                                :class="saving ?
+                                       'px-4 py-2 bg-blue-400 text-white rounded cursor-not-allowed opacity-75' :
+                                       'px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition'">
+                            <div class="flex items-center">
+                                <svg x-show="saving" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-show="!saving" x-text="showAddModal ? 'Add Product' : 'Update Product'"></span>
+                                <span x-show="saving" x-text="showAddModal ? 'Adding Product...' : 'Updating Product...'"></span>
+                            </div>
                         </button>
                     </div>
                 </form>
@@ -220,6 +277,9 @@ function simpleAdminProducts() {
             weight: '',
             is_active: true
         },
+        saving: false,
+        deleting: false,
+        validationErrors: {},
 
         async init() {
             console.log('Admin Products with CRUD initializing...');
@@ -240,6 +300,7 @@ function simpleAdminProducts() {
                         slug: product.slug,
                         category: product.category?.name || this.getCategoryName(product.category_id) || 'N/A',
                         category_id: product.category_id,
+                        weight_kg: product.weight_kg,
                         price: product.variants && product.variants[0] ? product.variants[0].price_aud : '0.00',
                         stock: product.variants && product.variants[0] ? product.variants[0].stock_quantity : 0,
                         is_active: product.is_active,
@@ -274,11 +335,122 @@ function simpleAdminProducts() {
             };
             this.imageFile = null;
             this.imagePreview = null;
+            this.validationErrors = {};
+        },
+
+        // Client-side validation
+        validateForm() {
+            this.validationErrors = {};
+            let isValid = true;
+
+            // Name validation
+            if (!this.productForm.name || this.productForm.name.trim().length < 3) {
+                this.validationErrors.name = 'Product name must be at least 3 characters long';
+                isValid = false;
+            } else if (this.productForm.name.trim().length > 255) {
+                this.validationErrors.name = 'Product name must not exceed 255 characters';
+                isValid = false;
+            }
+
+            // Category validation
+            if (!this.productForm.category_id) {
+                this.validationErrors.category_id = 'Please select a category';
+                isValid = false;
+            }
+
+            // Price validation
+            if (!this.productForm.price) {
+                this.validationErrors.price = 'Price is required';
+                isValid = false;
+            } else if (parseFloat(this.productForm.price) <= 0) {
+                this.validationErrors.price = 'Price must be greater than 0';
+                isValid = false;
+            } else if (parseFloat(this.productForm.price) > 999999.99) {
+                this.validationErrors.price = 'Price must not exceed $999,999.99';
+                isValid = false;
+            }
+
+            // Stock validation
+            if (this.productForm.stock === '' || this.productForm.stock === null) {
+                this.validationErrors.stock = 'Stock quantity is required';
+                isValid = false;
+            } else if (parseInt(this.productForm.stock) < 0) {
+                this.validationErrors.stock = 'Stock quantity cannot be negative';
+                isValid = false;
+            } else if (parseInt(this.productForm.stock) > 999999) {
+                this.validationErrors.stock = 'Stock quantity must not exceed 999,999';
+                isValid = false;
+            }
+
+            // Weight validation (optional but if provided must be valid)
+            if (this.productForm.weight && (parseFloat(this.productForm.weight) < 0 || parseFloat(this.productForm.weight) > 1000)) {
+                this.validationErrors.weight = 'Weight must be between 0 and 1000 kg';
+                isValid = false;
+            }
+
+            // Image validation
+            if (this.imageFile) {
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml'];
+                if (!validTypes.includes(this.imageFile.type)) {
+                    this.validationErrors.image = 'Image must be JPEG, PNG, GIF, or SVG format';
+                    isValid = false;
+                } else if (this.imageFile.size > 2 * 1024 * 1024) { // 2MB
+                    this.validationErrors.image = 'Image size must not exceed 2MB';
+                    isValid = false;
+                }
+            }
+
+            return isValid;
+        },
+
+        // Real-time field validation
+        validateField(field) {
+            switch(field) {
+                case 'name':
+                    if (this.productForm.name && this.productForm.name.trim().length >= 3) {
+                        delete this.validationErrors.name;
+                    }
+                    break;
+                case 'category_id':
+                    if (this.productForm.category_id) {
+                        delete this.validationErrors.category_id;
+                    }
+                    break;
+                case 'price':
+                    if (this.productForm.price && parseFloat(this.productForm.price) > 0) {
+                        delete this.validationErrors.price;
+                    }
+                    break;
+                case 'stock':
+                    if (this.productForm.stock !== '' && parseInt(this.productForm.stock) >= 0) {
+                        delete this.validationErrors.stock;
+                    }
+                    break;
+            }
         },
 
         handleImageChange(event) {
             const file = event.target.files[0];
             if (file) {
+                // Clear previous image validation errors
+                delete this.validationErrors.image;
+
+                // Validate image
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/svg+xml'];
+                if (!validTypes.includes(file.type)) {
+                    this.validationErrors.image = 'Image must be JPEG, PNG, GIF, or SVG format';
+                    this.imageFile = null;
+                    this.imagePreview = null;
+                    return;
+                }
+
+                if (file.size > 2 * 1024 * 1024) { // 2MB
+                    this.validationErrors.image = 'Image size must not exceed 2MB';
+                    this.imageFile = null;
+                    this.imagePreview = null;
+                    return;
+                }
+
                 this.imageFile = file;
                 // Create preview
                 const reader = new FileReader();
@@ -312,22 +484,24 @@ function simpleAdminProducts() {
                 category_id: product.category_id || '',
                 price: product.price,
                 stock: product.stock || 0,
-                weight: '',
+                weight: product.weight_kg || '',
                 is_active: product.is_active
             };
             this.showEditModal = true;
         },
 
         async saveProduct() {
-            try {
-                // Basic frontend validation
-                if (!this.productForm.name || !this.productForm.category_id || !this.productForm.price || !this.productForm.stock) {
-                    if (window.app && window.app.showNotification) {
-                        window.app.showNotification('Please fill in all required fields', 'error');
-                    }
-                    return;
+            // Run client-side validation first
+            if (!this.validateForm()) {
+                if (window.app && window.app.showNotification) {
+                    window.app.showNotification('Please fix the validation errors before submitting', 'error');
                 }
+                return;
+            }
 
+            this.saving = true;
+
+            try {
                 // Use FormData for file upload
                 const formData = new FormData();
                 formData.append('name', this.productForm.name.trim());
@@ -370,29 +544,42 @@ function simpleAdminProducts() {
                 console.error('Error saving product:', error);
                 console.error('Error details:', error.response?.data);
 
-                if (window.app && window.app.showNotification) {
-                    let message = 'Failed to save product';
-                    if (error.response?.data?.errors) {
-                        // Show validation errors
-                        const errors = error.response.data.errors;
-                        message = Object.values(errors).flat().join(', ');
-                    } else if (error.response?.data?.message) {
-                        message = error.response.data.message;
+                // Handle server-side validation errors
+                if (error.response?.data?.errors) {
+                    this.validationErrors = error.response.data.errors;
+                    if (window.app && window.app.showNotification) {
+                        window.app.showNotification('Please fix the validation errors', 'error');
                     }
-                    window.app.showNotification(message, 'error');
+                } else {
+                    if (window.app && window.app.showNotification) {
+                        let message = 'Failed to save product';
+                        if (error.response?.data?.message) {
+                            message = error.response.data.message;
+                        }
+                        window.app.showNotification(message, 'error');
+                    }
                 }
+            } finally {
+                this.saving = false;
             }
         },
 
         async deleteProduct(product) {
-            if (!confirm(`Are you sure you want to delete "${product.name}"?`)) {
+            if (!confirm(`Are you sure you want to delete "${product.name}"?\n\nNote: If this product has orders, it will be deactivated instead of deleted.`)) {
                 return;
             }
 
+            this.deleting = true;
+
             try {
-                await axios.delete(`/api/products/${product.id}`);
+                const response = await axios.delete(`/api/products/${product.id}`);
+
                 if (window.app && window.app.showNotification) {
-                    window.app.showNotification('Product deleted successfully!', 'success');
+                    if (response.data?.action === 'deactivated') {
+                        window.app.showNotification(response.data.message || 'Product deactivated successfully!', 'warning');
+                    } else {
+                        window.app.showNotification(response.data.message || 'Product deleted successfully!', 'success');
+                    }
                 }
                 await this.refreshProducts();
             } catch (error) {
@@ -401,6 +588,8 @@ function simpleAdminProducts() {
                     const message = error.response?.data?.message || 'Failed to delete product';
                     window.app.showNotification(message, 'error');
                 }
+            } finally {
+                this.deleting = false;
             }
         }
     }

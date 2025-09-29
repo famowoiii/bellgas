@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
@@ -65,6 +66,7 @@ class ProductController extends Controller
                 'name' => $product->name,
                 'slug' => $product->slug,
                 'description' => $product->description,
+                'weight_kg' => $product->weight_kg,
                 'category' => $product->category,
                 'is_active' => $product->is_active,
                 'created_at' => $product->created_at,
@@ -119,7 +121,8 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'category_id' => 'required|exists:categories,id',
+            'category_id' => 'nullable|exists:categories,id',
+            'category' => 'nullable|string|in:REFILL,FULL_TANK',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'weight' => 'nullable|numeric|min:0',
@@ -139,7 +142,9 @@ class ProductController extends Controller
         $product = Product::create([
             'name' => $validated['name'],
             'description' => $validated['description'],
-            'category_id' => $validated['category_id'],
+            'weight_kg' => $validated['weight'] ?? 0,
+            'category_id' => $validated['category_id'] ?? null,
+            'category' => $validated['category'] ?? 'REFILL',
             'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : true,
             'image_url' => $imagePath,
         ]);
@@ -200,7 +205,8 @@ class ProductController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'description' => 'nullable|string',
-                'category_id' => 'required|exists:categories,id',
+                'category_id' => 'nullable|exists:categories,id',
+                'category' => 'nullable|string|in:REFILL,FULL_TANK',
                 'price' => 'required|numeric|min:0',
                 'stock' => 'required|integer|min:0',
                 'weight' => 'nullable|numeric|min:0',
@@ -222,7 +228,9 @@ class ProductController extends Controller
         $updateData = [
             'name' => $validated['name'],
             'description' => $validated['description'],
-            'category_id' => $validated['category_id'],
+            'weight_kg' => $validated['weight'] ?? $product->weight_kg,
+            'category_id' => $validated['category_id'] ?? $product->category_id,
+            'category' => $validated['category'] ?? $product->category,
             'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : $product->is_active,
         ];
 
@@ -297,22 +305,58 @@ class ProductController extends Controller
             ], 404);
         }
 
-        // Check if product has any orders
-        $hasOrders = $product->variants()
-            ->whereHas('orderItems')
-            ->exists();
+        try {
+            // Check if product has any orders
+            $hasOrders = $product->variants()
+                ->whereHas('orderItems')
+                ->exists();
 
-        if ($hasOrders) {
+            if ($hasOrders) {
+                // Instead of blocking deletion, deactivate the product
+                $product->update(['is_active' => false]);
+
+                return response()->json([
+                    'message' => 'Product has been ordered previously so it has been deactivated instead of deleted.',
+                    'action' => 'deactivated'
+                ]);
+            }
+
+            // Try to delete the product and its related data
+            DB::transaction(function() use ($product) {
+                // Delete photos first
+                $product->photos()->delete();
+
+                // Delete variants
+                $product->variants()->delete();
+
+                // Delete the product itself
+                $product->delete();
+            });
+
             return response()->json([
-                'message' => 'Cannot delete product that has been ordered. You can deactivate it instead.'
-            ], 400);
+                'message' => 'Product deleted successfully',
+                'action' => 'deleted'
+            ]);
+
+        } catch (\Exception $e) {
+            // If deletion fails due to constraints, deactivate instead
+            \Log::error('Product deletion failed', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ]);
+
+            try {
+                $product->update(['is_active' => false]);
+                return response()->json([
+                    'message' => 'Could not delete product due to database constraints. Product has been deactivated instead.',
+                    'action' => 'deactivated'
+                ]);
+            } catch (\Exception $deactivateError) {
+                return response()->json([
+                    'message' => 'Failed to delete or deactivate product: ' . $deactivateError->getMessage()
+                ], 500);
+            }
         }
-
-        $product->delete();
-
-        return response()->json([
-            'message' => 'Product deleted successfully',
-        ]);
     }
 }
 

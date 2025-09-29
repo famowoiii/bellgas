@@ -81,40 +81,8 @@
                 <p x-show="errors.phone_number" class="mt-1 text-sm text-red-600" x-text="errors.phone_number?.[0]"></p>
             </div>
 
-            <!-- Role Selection -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
-                <div class="grid grid-cols-2 gap-3">
-                    <label class="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:border-blue-500 transition"
-                           :class="form.role === 'CUSTOMER' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'">
-                        <input x-model="form.role" type="radio" value="CUSTOMER" class="sr-only">
-                        <div class="flex-1">
-                            <div class="flex items-center justify-center mb-2">
-                                <i class="fas fa-user text-2xl text-blue-600"></i>
-                            </div>
-                            <div class="text-center">
-                                <h3 class="font-medium text-sm">Customer</h3>
-                                <p class="text-xs text-gray-500">Order LPG for personal use</p>
-                            </div>
-                        </div>
-                    </label>
-                    
-                    <label class="flex items-center p-3 border border-gray-300 rounded-md cursor-pointer hover:border-blue-500 transition"
-                           :class="form.role === 'MERCHANT' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'">
-                        <input x-model="form.role" type="radio" value="MERCHANT" class="sr-only">
-                        <div class="flex-1">
-                            <div class="flex items-center justify-center mb-2">
-                                <i class="fas fa-store text-2xl text-green-600"></i>
-                            </div>
-                            <div class="text-center">
-                                <h3 class="font-medium text-sm">Merchant</h3>
-                                <p class="text-xs text-gray-500">Sell LPG products</p>
-                            </div>
-                        </div>
-                    </label>
-                </div>
-                <p x-show="errors.role" class="mt-1 text-sm text-red-600" x-text="errors.role?.[0]"></p>
-            </div>
+            <!-- Hidden Role Field (Always CUSTOMER for public registration) -->
+            <input type="hidden" x-model="form.role" value="CUSTOMER">
 
             <!-- Password Fields -->
             <div class="space-y-3">

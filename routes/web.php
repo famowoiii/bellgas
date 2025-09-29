@@ -153,7 +153,7 @@ Route::middleware(['web.auth'])->prefix('web')->group(function () {
         ->name('web.admin.dashboard.top-products');
 
     // Customer dashboard routes
-    Route::get('/customer/dashboard/stats', [\App\Http\Controllers\Api\DashboardController::class, 'getCustomerStats'])
+    Route::get('/customer/dashboard/stats', [\App\Http\Controllers\Api\Admin\DashboardController::class, 'userStats'])
         ->name('web.customer.dashboard.stats');
     Route::get('/orders', [\App\Http\Controllers\Api\OrderController::class, 'index'])
         ->name('web.customer.orders');
@@ -182,22 +182,31 @@ Route::middleware(['admin.auth'])->prefix('admin')->group(function () {
     Route::get('/dashboard', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
-    
+
     Route::get('/orders', function () {
         return view('admin.orders');
     })->name('admin.orders');
-    
+
     Route::get('/products', function () {
         return view('admin.products');
     })->name('admin.products');
-    
+
     Route::get('/customers', function () {
         return view('admin.customers');
     })->name('admin.customers');
-    
+
     Route::get('/settings', function () {
         return view('admin.settings');
     })->name('admin.settings');
+
+    // Admin user management - only accessible by existing admins
+    Route::get('/users', function () {
+        return view('admin.users');
+    })->name('admin.users');
+
+    Route::get('/create-admin', function () {
+        return view('admin.create-admin');
+    })->name('admin.create-admin');
 });
 
 // Static Pages

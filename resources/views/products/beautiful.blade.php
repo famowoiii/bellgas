@@ -73,6 +73,12 @@
                             <p class="text-gray-600 text-sm leading-relaxed line-clamp-2"
                                x-text="product.description || 'Premium quality LPG product for all your needs.'"></p>
 
+                            <!-- Weight Info -->
+                            <div x-show="product.weight_kg" class="flex items-center text-sm text-gray-500">
+                                <i class="fas fa-weight-hanging mr-2 text-blue-500"></i>
+                                <span x-text="product.weight_kg + ' kg'"></span>
+                            </div>
+
                             <!-- Price -->
                             <div class="flex items-center justify-between">
                                 <div class="text-2xl font-bold text-green-600">

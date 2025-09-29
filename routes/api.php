@@ -118,9 +118,10 @@ Route::middleware(['jwt.auth'])->group(function () {
     // Product management for merchants/admins
     Route::prefix('products')->group(function () {
         Route::post('/', [ProductController::class, 'store']); // Merchant/Admin only
-        Route::put('/{product}', [ProductController::class, 'update']); // Merchant/Admin only
-        Route::delete('/{product}', [ProductController::class, 'destroy']); // Merchant/Admin only
-        Route::patch('/{product}/toggle', [\App\Http\Controllers\Api\ProductToggleController::class, 'toggleStatus']); // Toggle active status
+        Route::put('/{productId}', [ProductController::class, 'update']); // Merchant/Admin only
+        Route::post('/{productId}', [ProductController::class, 'update']); // Support POST with _method=PUT for file uploads
+        Route::delete('/{productId}', [ProductController::class, 'destroy']); // Merchant/Admin only
+        Route::patch('/{productId}/toggle', [\App\Http\Controllers\Api\ProductToggleController::class, 'toggleStatus']); // Toggle active status
     });
 
     // Category management (Admin only)
@@ -140,7 +141,14 @@ Route::middleware(['jwt.auth'])->group(function () {
         // New Admin Statistics API
         Route::get('stats', [\App\Http\Controllers\Api\AdminStatsController::class, 'getStats']);
         Route::get('stats/orders', [\App\Http\Controllers\Api\AdminStatsController::class, 'getOrderStats']);
-        
+
+        // Admin User Management (Only for ADMIN role)
+        Route::middleware('role:ADMIN')->group(function () {
+            Route::get('users', [\App\Http\Controllers\Api\AdminUserController::class, 'index']);
+            Route::post('users/admin', [\App\Http\Controllers\Api\AdminUserController::class, 'createAdmin']);
+            Route::patch('users/{user}/status', [\App\Http\Controllers\Api\AdminUserController::class, 'updateStatus']);
+        });
+
         // Reports and Export (commented out - controller not implemented)
         // Route::get('orders/export', [\App\Http\Controllers\Api\ReportController::class, 'exportOrders']);
         // Route::get('reports/sales', [\App\Http\Controllers\Api\ReportController::class, 'salesReport']);

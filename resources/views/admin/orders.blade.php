@@ -143,7 +143,7 @@
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Address & Notes</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
@@ -163,12 +163,44 @@
                                     <div>
                                         <div class="text-sm font-medium text-gray-900" x-text="order.user?.first_name + ' ' + order.user?.last_name"></div>
                                         <div class="text-sm text-gray-500" x-text="order.user?.email"></div>
+                                        <div x-show="order.user?.phone_number" class="text-xs text-gray-400">
+                                            📞 <span x-text="order.user?.phone_number"></span>
+                                        </div>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div>
-                                        <div class="text-sm font-medium" :class="order.fulfillment_method === 'PICKUP' ? 'text-blue-600' : 'text-green-600'" x-text="order.fulfillment_method === 'PICKUP' ? 'Pickup at Store' : 'Delivery'"></div>
-                                        <div class="text-sm text-gray-500" x-text="getDisplayAddress(order)"></div>
+                                <td class="px-6 py-4">
+                                    <div class="max-w-xs">
+                                        <!-- Fulfillment Method -->
+                                        <div class="text-sm font-medium mb-1" :class="order.fulfillment_method === 'PICKUP' ? 'text-blue-600' : 'text-green-600'" x-text="order.fulfillment_method === 'PICKUP' ? 'Pickup at Store' : 'Delivery'"></div>
+
+                                        <!-- Complete Address -->
+                                        <div class="text-sm text-gray-600 mb-2">
+                                            <div x-show="order.fulfillment_method === 'PICKUP'" class="space-y-1">
+                                                <div class="font-medium text-blue-700">BellGas LPG Store</div>
+                                                <div>123 Main Street</div>
+                                                <div>Melbourne VIC 3000</div>
+                                            </div>
+                                            <div x-show="order.fulfillment_method === 'DELIVERY' && order.address" class="space-y-1">
+                                                <div class="font-medium text-green-700" x-text="(order.user?.first_name || '') + ' ' + (order.user?.last_name || '')"></div>
+                                                <div x-text="order.address?.street_address"></div>
+                                                <div x-text="(order.address?.suburb || '') + ' ' + (order.address?.state || '') + ' ' + (order.address?.postcode || '')"></div>
+                                                <div x-show="order.address?.phone" class="text-xs text-gray-500">
+                                                    📞 <span x-text="order.address?.phone"></span>
+                                                </div>
+                                            </div>
+                                            <div x-show="order.fulfillment_method === 'DELIVERY' && !order.address" class="text-gray-500 italic">
+                                                Address not specified
+                                            </div>
+                                        </div>
+
+                                        <!-- Customer Notes -->
+                                        <div x-show="order.customer_notes" class="mt-2 p-2 bg-yellow-50 border-l-4 border-yellow-400">
+                                            <div class="text-xs font-medium text-yellow-800 mb-1">Customer Notes:</div>
+                                            <div class="text-xs text-yellow-700" x-text="order.customer_notes"></div>
+                                        </div>
+                                        <div x-show="!order.customer_notes" class="text-xs text-gray-400 italic mt-1">
+                                            No customer notes
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900" x-text="formatDate(order.created_at)"></td>
@@ -346,6 +378,66 @@
                         <p class="text-sm"><strong>Phone:</strong> <span x-text="selectedOrder?.user?.phone_number"></span></p>
                         <p class="text-sm"><strong>Fulfillment:</strong> <span x-text="selectedOrder?.fulfillment_method"></span></p>
                         <p class="text-sm"><strong>Address:</strong> <span x-text="getDisplayAddress(selectedOrder)"></span></p>
+                    </div>
+                </div>
+
+                <!-- Customer Notes Section -->
+                <div x-show="selectedOrder?.customer_notes" class="mb-6 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+                    <h4 class="font-semibold text-yellow-800 mb-2">
+                        <i class="fas fa-sticky-note mr-2"></i>Customer Notes
+                    </h4>
+                    <p class="text-sm text-yellow-700" x-text="selectedOrder?.customer_notes"></p>
+                </div>
+
+                <!-- Complete Address Information -->
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-3">
+                        <i class="fas fa-map-marker-alt mr-2"></i>Complete Address Information
+                    </h4>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div x-show="selectedOrder?.fulfillment_method === 'PICKUP'" class="space-y-2">
+                            <div class="font-medium text-blue-700">🏪 BellGas LPG Store (Pickup Location)</div>
+                            <div class="text-gray-600">123 Main Street</div>
+                            <div class="text-gray-600">Melbourne VIC 3000</div>
+                            <div class="text-sm text-gray-500 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i>Customer will collect the order from our store
+                            </div>
+                        </div>
+                        <div x-show="selectedOrder?.fulfillment_method === 'DELIVERY' && selectedOrder?.address" class="space-y-2">
+                            <div class="font-medium text-green-700">
+                                🚚 Delivery Address for <span x-text="(selectedOrder?.user?.first_name || '') + ' ' + (selectedOrder?.user?.last_name || '')"></span>
+                            </div>
+                            <div class="text-gray-600" x-text="selectedOrder?.address?.street_address"></div>
+                            <div class="text-gray-600" x-text="(selectedOrder?.address?.suburb || '') + ' ' + (selectedOrder?.address?.state || '') + ' ' + (selectedOrder?.address?.postcode || '')"></div>
+                            <div x-show="selectedOrder?.address?.phone" class="text-sm text-gray-500 mt-2">
+                                📞 Phone: <span x-text="selectedOrder?.address?.phone"></span>
+                            </div>
+                        </div>
+                        <div x-show="selectedOrder?.fulfillment_method === 'DELIVERY' && !selectedOrder?.address" class="text-gray-500 italic">
+                            ⚠️ Delivery address not specified
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="mb-6">
+                    <h4 class="font-semibold mb-3">
+                        <i class="fas fa-shopping-cart mr-2"></i>Order Items
+                    </h4>
+                    <div class="space-y-2">
+                        <template x-for="item in selectedOrder?.items || []" :key="item.id">
+                            <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                                <div>
+                                    <div class="font-medium" x-text="item.product_variant?.product?.name || 'Product name not available'"></div>
+                                    <div class="text-sm text-gray-500" x-text="'Variant: ' + (item.product_variant?.name || 'Standard')"></div>
+                                    <div class="text-sm text-gray-500" x-text="'Quantity: ' + item.quantity"></div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-medium" x-text="'$' + (item.total_price_aud || '0.00')"></div>
+                                    <div class="text-sm text-gray-500" x-text="'$' + (item.unit_price_aud || '0.00') + ' each'"></div>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 

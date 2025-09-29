@@ -12,8 +12,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            UserSeeder::class,
-            ProductSeeder::class,
+            AdminSeeder::class,  // Create admin users first
+            UserSeeder::class,   // Then create regular users
+            ProductSeeder::class, // Finally create products
         ]);
     }
 }

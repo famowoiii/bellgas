@@ -138,9 +138,16 @@
                         <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-800">$<span x-text="metrics.total_revenue"></span></p>
-                        <p class="text-gray-600 text-sm">Total Revenue</p>
-                        <p class="text-xs text-green-600" x-text="metrics.revenue_change"></p>
+                        <div x-show="loading" class="space-y-2">
+                            <div class="h-6 bg-gray-200 rounded animate-pulse"></div>
+                            <div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                            <div class="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                        </div>
+                        <div x-show="!loading">
+                            <p class="text-2xl font-bold text-gray-800">$<span x-text="metrics.total_revenue"></span></p>
+                            <p class="text-gray-600 text-sm">Total Revenue</p>
+                            <p class="text-xs text-green-600" x-text="metrics.revenue_change"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -210,7 +217,22 @@
                     </div>
 
                     <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                        <template x-for="order in filteredOrders" :key="order.id">
+                        <!-- Loading skeleton for orders -->
+                        <div x-show="loading" class="space-y-4 p-4">
+                            <div class="animate-pulse" x-data x-init="setTimeout(() => {}, 100)" x-for="i in 5">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-1/3"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                                    </div>
+                                    <div class="h-8 w-16 bg-gray-200 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actual orders -->
+                        <template x-for="order in filteredOrders" :key="order.id" x-show="!loading">
                             <div class="p-4 hover:bg-gray-50 transition">
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
@@ -220,7 +242,7 @@
                                                   :class="getStatusColor(order.status)"
                                                   x-text="order.status"></span>
                                         </div>
-                                        
+
                                         <div class="text-sm text-gray-600">
                                             <p><span class="font-medium" x-text="order.user?.first_name + ' ' + order.user?.last_name"></span></p>
                                             <p x-text="formatDate(order.created_at)"></p>
@@ -291,12 +313,26 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h3 class="text-lg font-semibold mb-4">Order Status</h3>
                     <div class="space-y-3">
-                        <template x-for="status in orderStatusStats" :key="status.name">
+                        <!-- Loading skeleton for order status -->
+                        <div x-show="loading" class="space-y-3">
+                            <div class="animate-pulse" x-for="i in 4">
+                                <div class="flex justify-between items-center">
+                                    <div class="h-4 bg-gray-200 rounded w-1/3"></div>
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-20 bg-gray-200 rounded-full h-2"></div>
+                                        <div class="h-4 bg-gray-200 rounded w-6"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actual order status -->
+                        <template x-for="status in orderStatusStats" :key="status.name" x-show="!loading">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm" x-text="status.name"></span>
                                 <div class="flex items-center space-x-2">
                                     <div class="w-20 bg-gray-200 rounded-full h-2">
-                                        <div class="h-2 rounded-full" 
+                                        <div class="h-2 rounded-full"
                                              :class="status.color"
                                              :style="'width: ' + status.percentage + '%'"></div>
                                     </div>
@@ -304,6 +340,12 @@
                                 </div>
                             </div>
                         </template>
+
+                        <!-- No data state -->
+                        <div x-show="!loading && orderStatusStats.length === 0" class="text-center py-4 text-gray-500">
+                            <i class="fas fa-chart-pie text-2xl mb-2"></i>
+                            <p class="text-sm">No order data available</p>
+                        </div>
                     </div>
                 </div>
 
@@ -311,7 +353,21 @@
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h3 class="text-lg font-semibold mb-4">Top Products</h3>
                     <div class="space-y-3">
-                        <template x-for="product in topProducts" :key="product.name">
+                        <!-- Loading skeleton for products -->
+                        <div x-show="loading" class="space-y-3">
+                            <div class="animate-pulse" x-for="i in 5">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex-1">
+                                        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
+                                    </div>
+                                    <div class="h-4 bg-gray-200 rounded w-16"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actual products -->
+                        <template x-for="product in topProducts" :key="product.name" x-show="!loading">
                             <div class="flex justify-between items-center">
                                 <div class="flex-1">
                                     <p class="font-medium text-sm" x-text="product.name"></p>
@@ -320,6 +376,12 @@
                                 <span class="text-sm font-bold" x-text="product.quantity + ' sold'"></span>
                             </div>
                         </template>
+
+                        <!-- No products state -->
+                        <div x-show="!loading && topProducts.length === 0" class="text-center py-4 text-gray-500">
+                            <i class="fas fa-box-open text-2xl mb-2"></i>
+                            <p class="text-sm">No product data available</p>
+                        </div>
                     </div>
                 </div>
 
@@ -442,6 +504,8 @@
 function adminDashboard() {
     return {
         sidebarOpen: false,
+        loading: true,
+        dataLoaded: false,
         metrics: {
             total_revenue: '0.00',
             revenue_change: '+0% from last month',
@@ -466,28 +530,37 @@ function adminDashboard() {
         showBellDropdown: false,
         
         async init() {
+            this.loading = true;
             await this.loadDashboardData();
+            this.loading = false;
+            this.dataLoaded = true;
         },
         
         async loadDashboardData() {
+            console.log('🔄 Loading admin dashboard data...');
+
             try {
-                // Get JWT token from window
-                const token = window.JWT_TOKEN;
-                console.log('🔥 Admin Dashboard using token:', token ? token.substring(0, 20) + '...' : 'EMPTY');
+                // Get JWT token from window or session
+                let token = window.JWT_TOKEN;
+
+                if (!token) {
+                    // Try to get from session via meta tag
+                    const metaToken = document.querySelector('meta[name="frontend-token"]');
+                    token = metaToken ? metaToken.getAttribute('content') : null;
+                }
+
+                console.log('🔑 Token available:', token ? 'YES' : 'NO');
 
                 if (!token) {
                     console.error('🚨 NO TOKEN AVAILABLE - Cannot load admin dashboard');
-                    if (!window.app || !window.app.isAuthenticated) {
-                        console.error('🚨 User not authenticated, redirecting to login');
-                        window.location.href = '/login';
-                        return;
-                    }
-                    throw new Error('No authentication token available');
+                    window.location.href = '/login';
+                    return;
                 }
 
-                // Create fresh axios instance with token
+                // Create axios instance with optimized config
                 const apiClient = axios.create({
                     baseURL: window.location.origin,
+                    timeout: 10000, // 10 second timeout
                     headers: {
                         'Authorization': 'Bearer ' + token,
                         'Accept': 'application/json',
@@ -496,12 +569,29 @@ function adminDashboard() {
                     }
                 });
 
-                // Load dashboard metrics
-                const dashboardResponse = await apiClient.get('/api/admin/dashboard');
-                const dashboardData = dashboardResponse.data;
-                
-                if (dashboardData.success && dashboardData.data?.stats) {
-                    const stats = dashboardData.data.stats;
+                // Load all data in parallel for better performance
+                console.log('🚀 Loading dashboard data in parallel...');
+
+                const [dashboardResponse, ordersResponse, productsResponse] = await Promise.all([
+                    apiClient.get('/api/admin/dashboard').catch(err => {
+                        console.error('Dashboard stats failed:', err);
+                        return { data: { success: false } };
+                    }),
+                    apiClient.get('/api/admin/dashboard/recent-orders').catch(err => {
+                        console.error('Recent orders failed:', err);
+                        return { data: { success: false } };
+                    }),
+                    apiClient.get('/api/admin/dashboard/top-products').catch(err => {
+                        console.error('Top products failed:', err);
+                        return { data: { success: false } };
+                    })
+                ]);
+
+                console.log('✅ Dashboard API responses received');
+
+                // Process dashboard metrics
+                if (dashboardResponse.data.success && dashboardResponse.data.data?.stats) {
+                    const stats = dashboardResponse.data.stats || dashboardResponse.data.data.stats;
                     this.metrics = {
                         total_revenue: Number(stats.total_revenue || 0).toFixed(2),
                         revenue_change: '+12% from last month',
@@ -512,45 +602,63 @@ function adminDashboard() {
                         products_sold: stats.products_sold || 0,
                         products_change: '+10% from last month'
                     };
-                }
-                
-                // Load recent orders
-                const ordersResponse = await apiClient.get('/api/admin/dashboard/recent-orders');
-                if (ordersResponse.data.success) {
-                    this.recentOrders = ordersResponse.data.data || [];
-                    this.filteredOrders = this.recentOrders;
+                    console.log('📊 Metrics loaded:', this.metrics);
+                } else {
+                    console.warn('⚠️ Dashboard metrics not loaded properly');
                 }
 
-                // Load top products
-                const productsResponse = await apiClient.get('/api/admin/dashboard/top-products');
-                if (productsResponse.data.success) {
-                    const products = productsResponse.data.data || [];
+                // Process recent orders
+                if (ordersResponse.data.success && ordersResponse.data.data) {
+                    this.recentOrders = ordersResponse.data.data;
+                    this.filteredOrders = this.recentOrders;
+                    console.log('📋 Recent orders loaded:', this.recentOrders.length);
+                } else {
+                    console.warn('⚠️ Recent orders not loaded properly');
+                }
+
+                // Process top products
+                if (productsResponse.data.success && productsResponse.data.data) {
+                    const products = productsResponse.data.data;
                     this.topProducts = products.map(product => ({
                         name: product.name,
-                        variant: 'Default',
+                        variant: product.variant || 'Default',
                         quantity: product.total_sold || 0
                     }));
+                    console.log('🏆 Top products loaded:', this.topProducts.length);
+                } else {
+                    console.warn('⚠️ Top products not loaded properly');
                 }
-                
+
+                // Calculate order statistics
                 this.calculateOrderStats();
-                
+                console.log('✅ Dashboard data loading completed');
+
             } catch (error) {
-                console.error('Failed to load dashboard data:', error);
-                // Set default values to prevent errors
-                this.metrics = {
-                    total_revenue: '0.00',
-                    revenue_change: '+0% from last month',
-                    total_orders: 0,
-                    orders_change: '+0% from last month',
-                    active_customers: 0,
-                    customers_change: '+0% from last month',
-                    products_sold: 0,
-                    products_change: '+0% from last month'
-                };
-                this.recentOrders = [];
-                this.filteredOrders = [];
-                this.topProducts = [];
+                console.error('❌ Failed to load dashboard data:', error);
+
+                // Set default values to prevent UI errors
+                this.setDefaultValues();
+
+                // Show user-friendly error
+                this.showNotification('Dashboard data failed to load. Please refresh the page.', 'error');
             }
+        },
+
+        setDefaultValues() {
+            this.metrics = {
+                total_revenue: '0.00',
+                revenue_change: '+0% from last month',
+                total_orders: 0,
+                orders_change: '+0% from last month',
+                active_customers: 0,
+                customers_change: '+0% from last month',
+                products_sold: 0,
+                products_change: '+0% from last month'
+            };
+            this.recentOrders = [];
+            this.filteredOrders = [];
+            this.topProducts = [];
+            this.orderStatusStats = [];
         },
         
         async refreshData() {
