@@ -98,15 +98,8 @@ class OrderStatusService
         $saved = $order->save();
 
         if ($saved) {
-            // Defer heavy operations to avoid blocking the response
-            defer(function () use ($order, $previousStatus, $newStatus, $metadata) {
-                try {
-                    // Fire event for real-time updates
-                    event(new OrderStatusUpdated($order, $previousStatus, $newStatus));
-                } catch (\Exception $e) {
-                    Log::warning('Failed to fire OrderStatusUpdated event: ' . $e->getMessage());
-                }
-            });
+            // Broadcasting disabled to prevent Pusher connection errors
+            // Real-time updates will be handled via polling instead
 
             Log::info('Order status updated successfully', [
                 'order_id' => $order->id,

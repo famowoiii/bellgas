@@ -43,3 +43,13 @@ Broadcast::channel('order.{orderNumber}', function ($user, $orderNumber) {
 
     return $user->id === $order->user_id || in_array($user->role, ['ADMIN', 'MERCHANT']);
 });
+
+// Private channel untuk admin notifications (only admin/merchant can access)
+Broadcast::channel('admin-notifications', function ($user) {
+    return in_array($user->role, ['ADMIN', 'MERCHANT']) ? $user : false;
+});
+
+// Private channel untuk order updates (admin only)
+Broadcast::channel('orders-updates', function ($user) {
+    return in_array($user->role, ['ADMIN', 'MERCHANT']) ? $user : false;
+});

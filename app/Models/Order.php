@@ -58,26 +58,23 @@ class Order extends Model
             }
         });
 
-        // Removed automatic NewOrderCreated event from created()
-        // Now only triggered when order status changes to PAID
+        // Model events disabled to prevent Pusher broadcast errors
+        // All events are now handled via polling for real-time updates
 
-        static::updating(function ($order) {
-            if ($order->isDirty('status') && $order->getOriginal('status') !== null) {
-                $previousStatus = $order->getOriginal('status');
-                $newStatus = $order->status;
+        // static::updating(function ($order) {
+        //     if ($order->isDirty('status') && $order->getOriginal('status') !== null) {
+        //         $previousStatus = $order->getOriginal('status');
+        //         $newStatus = $order->status;
 
-                // Fire after the model is saved to ensure data consistency
-                static::updated(function ($updatedOrder) use ($previousStatus, $newStatus) {
-                    // Fire OrderStatusUpdated for all status changes
-                    event(new \App\Events\OrderStatusUpdated($updatedOrder, $previousStatus, $newStatus));
+        //         static::updated(function ($updatedOrder) use ($previousStatus, $newStatus) {
+        //             event(new \App\Events\OrderStatusUpdated($updatedOrder, $previousStatus, $newStatus));
 
-                    // Fire NewOrderCreated only when status changes to PAID (payment completed)
-                    if ($newStatus === 'PAID' && $previousStatus === 'PENDING') {
-                        event(new \App\Events\NewOrderCreated($updatedOrder->load('user', 'items.productVariant.product')));
-                    }
-                });
-            }
-        });
+        //             if ($newStatus === 'PAID' && $previousStatus === 'PENDING') {
+        //                 event(new \App\Events\NewOrderCreated($updatedOrder->load('user', 'items.productVariant.product')));
+        //             }
+        //         });
+        //     }
+        // });
     }
 
     public function user(): BelongsTo

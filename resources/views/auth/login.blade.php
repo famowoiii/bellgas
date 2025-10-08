@@ -23,7 +23,7 @@
             </p>
         </div>
 
-        <form class="mt-8 space-y-6" method="POST" action="/login" @submit="handleSubmit">
+        <form class="mt-8 space-y-6" method="POST" action="/login">
             @csrf
             <div class="rounded-md shadow-sm -space-y-px">
                 <div>
@@ -78,13 +78,12 @@
             </div>
 
             <div>
-                <button type="submit" 
-                        :disabled="loading"
-                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                <button type="submit"
+                        class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition">
                     <span class="absolute left-0 inset-y-0 flex items-center pl-3">
-                        <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-lock'" class="text-blue-500 group-hover:text-blue-400"></i>
+                        <i class="fas fa-lock text-blue-500 group-hover:text-blue-400"></i>
                     </span>
-                    <span x-text="loading ? 'Signing in...' : 'Sign in'"></span>
+                    <span>Sign in</span>
                 </button>
             </div>
 
@@ -176,9 +175,8 @@ function loginForm() {
         },
         errors: {},
         generalError: '',
-        loading: false,
         showPassword: false,
-        
+
         fillDemoCredentials(type) {
             if (type === 'customer') {
                 this.form.email = 'stripetester@bellgas.com';
@@ -187,16 +185,6 @@ function loginForm() {
                 this.form.email = 'admin@bellgas.com.au';
                 this.form.password = 'password';
             }
-        },
-        
-        handleSubmit(event) {
-            // Show loading state
-            this.loading = true;
-            this.errors = {};
-            this.generalError = '';
-
-            // Let the form submit normally - no prevention
-            // The form will submit to /login POST route
         }
     }
 }

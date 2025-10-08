@@ -27,7 +27,7 @@
                             </div>
                             <div>
                                 <p class="font-medium text-gray-800">Phone</p>
-                                <p class="text-gray-600">+61 2 1234 5678</p>
+                                <p class="text-gray-600">+61 2 6655 1063</p>
                                 <p class="text-sm text-gray-500">Mon-Fri: 8AM-6PM, Sat: 9AM-4PM</p>
                             </div>
                         </div>
@@ -49,7 +49,7 @@
                             </div>
                             <div>
                                 <p class="font-medium text-gray-800">Address</p>
-                                <p class="text-gray-600">123 Gas Street<br>Sydney NSW 2000<br>Australia</p>
+                                <p class="text-gray-600">995 Waterfall Way<br>Bellingen NSW 2454<br>Australia</p>
                             </div>
                         </div>
 
@@ -328,7 +328,7 @@
                             <i :class="openFaq === 1 ? 'fas fa-chevron-up' : 'fas fa-chevron-down'" class="text-gray-500"></i>
                         </button>
                         <div x-show="openFaq === 1" class="px-6 pb-6">
-                            <p class="text-gray-600">We deliver across the entire Sydney metropolitan area, including all surrounding suburbs within a 50km radius of the CBD.</p>
+                            <p class="text-gray-600">We deliver across the Bellingen area and surrounding regions, including all suburbs within a 50km radius of Bellingen.</p>
                         </div>
                     </div>
 

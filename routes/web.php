@@ -92,6 +92,46 @@ Route::get('/test-add-to-cart', function () {
     return view('test-add-to-cart');
 })->name('test-add-to-cart');
 
+// Test routes for development only
+Route::get('/test-create-order', function () {
+    if (app()->environment('local')) {
+        // Create a test order
+        $user = \App\Models\User::first();
+        if (!$user) {
+            return response()->json(['error' => 'No user found'], 404);
+        }
+
+        $order = \App\Models\Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'BG-TEST-' . time(),
+            'status' => 'PENDING',
+            'fulfillment_method' => 'DELIVERY',
+            'total_aud' => 59.99,
+            'customer_name' => $user->name,
+            'customer_email' => $user->email,
+            'customer_phone' => '+61412345678',
+            'customer_notes' => 'Test order for real-time notifications',
+            'stripe_payment_intent_id' => 'pi_test_' . time(),
+        ]);
+
+        return response()->json(['message' => 'Test order created', 'order_id' => $order->id, 'order_number' => $order->order_number]);
+    }
+    return response()->json(['error' => 'Not available in production'], 403);
+});
+
+Route::get('/test-payment-webhook/{orderId}', function ($orderId) {
+    if (app()->environment('local')) {
+        $order = \App\Models\Order::with(['items.productVariant.product', 'address'])->find($orderId);
+        if ($order) {
+            $order->update(['status' => 'PAID']);
+            broadcast(new \App\Events\NewPaidOrderEvent($order))->toOthers();
+            return response()->json(['message' => 'Payment webhook simulated', 'order' => $order->order_number]);
+        }
+        return response()->json(['error' => 'Order not found'], 404);
+    }
+    return response()->json(['error' => 'Not available in production'], 403);
+});
+
 // Customer Dashboard (require auth)
 Route::middleware(['web.auth'])->group(function () {
     Route::get('/dashboard', function () {

@@ -534,6 +534,9 @@ function adminDashboard() {
             await this.loadDashboardData();
             this.loading = false;
             this.dataLoaded = true;
+
+            // Initialize real-time notifications
+            this.setupRealtimeListeners();
         },
         
         async loadDashboardData() {
@@ -852,6 +855,76 @@ function adminDashboard() {
         clearBellNotifications() {
             this.bellCount = 0;
             // Keep notifications but mark as read
+        },
+
+        setupRealtimeListeners() {
+            console.log('🔗 Setting up real-time listeners for admin dashboard...');
+
+            // Check if Echo is available
+            if (typeof window.Echo === 'undefined') {
+                console.warn('⚠️ Laravel Echo not available, real-time notifications disabled');
+                return;
+            }
+
+            try {
+                // Listen for new paid orders on admin notifications channel
+                window.Echo.private('admin-notifications')
+                    .listen('.new-paid-order', (e) => {
+                        console.log('🔔 New paid order notification received:', e);
+                        this.handleNewPaidOrder(e);
+                    })
+                    .error((error) => {
+                        console.error('❌ Error listening to admin-notifications:', error);
+                    });
+
+                // Listen for order updates on orders channel
+                window.Echo.private('orders-updates')
+                    .listen('.new-paid-order', (e) => {
+                        console.log('📦 Order update received:', e);
+                        this.refreshDashboardData();
+                    })
+                    .error((error) => {
+                        console.error('❌ Error listening to orders-updates:', error);
+                    });
+
+                console.log('✅ Real-time listeners setup complete');
+            } catch (error) {
+                console.error('❌ Failed to setup real-time listeners:', error);
+            }
+        },
+
+        handleNewPaidOrder(event) {
+            console.log('🎉 Handling new paid order:', event);
+
+            // Add bell notification
+            this.addBellNotification({
+                order_id: event.order.id,
+                order_number: event.order.order_number,
+                customer_name: event.order.customer_name,
+                total: event.order.total_aud,
+                type: 'paid_order'
+            });
+
+            // Show success notification
+            if (window.app && typeof window.app.showNotification === 'function') {
+                window.app.showNotification(
+                    `🎉 ${event.notification.title} Order #${event.order.order_number} for $${event.order.total_aud}`,
+                    'success'
+                );
+            }
+
+            // Optionally refresh dashboard data to show updated metrics
+            this.refreshDashboardData();
+        },
+
+        async refreshDashboardData() {
+            console.log('🔄 Refreshing dashboard data...');
+            try {
+                await this.loadDashboardData();
+                console.log('✅ Dashboard data refreshed');
+            } catch (error) {
+                console.error('❌ Failed to refresh dashboard data:', error);
+            }
         },
 
         clearAllBellNotifications() {

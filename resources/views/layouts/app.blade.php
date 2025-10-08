@@ -50,9 +50,9 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Pusher and Laravel Echo for WebSocket connections -->
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    <!-- Pusher and Laravel Echo disabled - using polling instead -->
+    {{-- <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script> --}}
+    {{-- <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script> --}}
 
     <!-- Axios for HTTP requests -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -903,7 +903,7 @@
                             const variantName = response.data.data?.productVariant?.name || '';
                             const displayName = variantName ? `${productName} (${variantName})` : productName;
 
-                            const notificationMessage = response.data.message || `${displayName} berhasil ditambahkan ke cart!`;
+                            const notificationMessage = response.data.message || `${displayName} successfully added to cart!`;
                             console.log('🔔 Attempting to show notification:', notificationMessage);
 
                             this.showNotification(notificationMessage, 'success');
@@ -1140,25 +1140,40 @@
                     this.loadingStates.loggingOut = true;
 
                     try {
+                        // Create a form data to send CSRF token properly
+                        const formData = new FormData();
+                        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
                         const response = await fetch('/logout', {
                             method: 'POST',
+                            credentials: 'same-origin', // Include cookies for session
                             headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            }
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
                         });
 
-                        if (response.ok) {
+                        // Check if logout was successful (either 200 or redirect)
+                        if (response.ok || response.redirected) {
                             this.user = null;
                             this.cartItems = [];
                             this.saveCartData();
+                            // Clear any stored tokens
+                            localStorage.removeItem('access_token');
+                            localStorage.removeItem('user_data');
                             window.location.href = '/';
                         } else {
-                            throw new Error('Logout failed');
+                            throw new Error(`Logout failed with status: ${response.status}`);
                         }
                     } catch (error) {
                         console.error('Logout error:', error);
                         this.showNotification('Logout failed. Please try again.', 'error');
+
+                        // Fallback: redirect to logout GET route
+                        setTimeout(() => {
+                            window.location.href = '/logout';
+                        }, 2000);
                     } finally {
                         this.loadingStates.loggingOut = false;
                     }

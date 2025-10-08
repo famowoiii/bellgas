@@ -10,7 +10,7 @@
         <div class="text-center">
             <h1 class="text-4xl md:text-6xl font-bold mb-6">About BellGas</h1>
             <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
-                Your trusted partner for safe, reliable, and convenient LPG services across Sydney
+                Your trusted partner for safe, reliable, and convenient LPG services across Bellingen
             </p>
         </div>
     </div>
@@ -24,16 +24,16 @@
                 <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">Our Story</h2>
                 <div class="space-y-4 text-gray-600 text-lg">
                     <p>
-                        Founded in 2015, BellGas has been serving the Sydney community with premium LPG services for over 8 years. 
-                        What started as a small local business has grown into one of Sydney's most trusted LPG suppliers.
+                        Founded in 2015, BellGas has been serving the Bellingen community with premium LPG services for over 8 years.
+                        What started as a small local business has grown into one of Bellingen's most trusted LPG suppliers.
                     </p>
                     <p>
                         We recognized that customers needed a reliable, convenient way to access quality LPG cylinders for their 
                         homes and businesses. That's why we built our platform to make ordering and receiving LPG as simple as possible.
                     </p>
                     <p>
-                        Today, we're proud to serve thousands of satisfied customers across Sydney, from individual households 
-                        to large commercial operations. Our commitment to safety, quality, and customer service remains at the 
+                        Today, we're proud to serve thousands of satisfied customers across Bellingen and surrounding areas, from individual households
+                        to large commercial operations. Our commitment to safety, quality, and customer service remains at the
                         heart of everything we do.
                     </p>
                 </div>
@@ -152,7 +152,7 @@
                     <i class="fas fa-clock text-2xl text-white"></i>
                 </div>
                 <h3 class="text-xl font-semibold mb-3">Same-Day Delivery</h3>
-                <p class="text-blue-100">Need LPG urgently? We offer same-day delivery across Sydney metro area.</p>
+                <p class="text-blue-100">Need LPG urgently? We offer same-day delivery across Bellingen and surrounding areas.</p>
             </div>
             
             <div class="text-center">

@@ -891,6 +891,16 @@ function adminOrders() {
                         this.refreshStats();
                     });
 
+                // Listen for new paid orders on private admin channel
+                window.Echo.private('admin-notifications')
+                    .listen('.new-paid-order', (data) => {
+                        console.log('🎉 New paid order received in orders page:', data);
+                        this.handleNewPaidOrder(data);
+                    })
+                    .error((error) => {
+                        console.error('❌ Error listening to admin-notifications in orders page:', error);
+                    });
+
                 console.log('✅ WebSocket listeners set up successfully');
             } else {
                 console.log('⚠️ WebSocket not available, using polling only');
@@ -951,6 +961,25 @@ function adminOrders() {
             } catch (error) {
                 console.error('Failed to refresh stats:', error);
             }
+        },
+
+        handleNewPaidOrder(event) {
+            console.log('🎉 Handling new paid order in orders page:', event);
+
+            // Show success notification
+            this.showNotification(
+                `🎉 ${event.notification.title} Order #${event.order.order_number} from ${event.order.customer_name} - $${event.order.total_aud}`,
+                'success'
+            );
+
+            // Play notification sound
+            this.playNotificationSound();
+
+            // Refresh orders list to show the new paid order
+            this.loadOrders();
+
+            // Refresh stats
+            this.refreshStats();
         },
 
         // Fallback polling method if WebSocket is not available

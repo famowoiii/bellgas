@@ -15,50 +15,75 @@
 
         <!-- Quick Stats -->
         <div class="grid md:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6" :class="{'animate-pulse': loading}">
                 <div class="flex items-center">
-                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                        <i class="fas fa-shopping-bag text-blue-600 text-xl"></i>
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
+                         :class="loading ? 'bg-gray-200' : 'bg-blue-100'">
+                        <i x-show="!loading" class="fas fa-shopping-bag text-blue-600 text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="stats.total_orders"></p>
-                        <p class="text-gray-600 text-sm">Total Orders</p>
+                        <p class="text-2xl font-bold mb-1"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-16' : 'text-gray-800'"
+                           x-text="loading ? '...' : stats.total_orders"></p>
+                        <p class="text-sm"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-24' : 'text-gray-600'">
+                           <span x-show="!loading">Total Orders</span>
+                        </p>
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white rounded-lg shadow-md p-6">
+
+            <div class="bg-white rounded-lg shadow-md p-6" :class="{'animate-pulse': loading}">
                 <div class="flex items-center">
-                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
-                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
+                         :class="loading ? 'bg-gray-200' : 'bg-green-100'">
+                        <i x-show="!loading" class="fas fa-check-circle text-green-600 text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="stats.completed_orders"></p>
-                        <p class="text-gray-600 text-sm">Completed</p>
+                        <p class="text-2xl font-bold mb-1"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-16' : 'text-gray-800'"
+                           x-text="loading ? '...' : stats.completed_orders"></p>
+                        <p class="text-sm"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-24' : 'text-gray-600'">
+                           <span x-show="!loading">Completed</span>
+                        </p>
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white rounded-lg shadow-md p-6">
+
+            <div class="bg-white rounded-lg shadow-md p-6" :class="{'animate-pulse': loading}">
                 <div class="flex items-center">
-                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mr-4">
-                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
+                         :class="loading ? 'bg-gray-200' : 'bg-yellow-100'">
+                        <i x-show="!loading" class="fas fa-clock text-yellow-600 text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="stats.pending_orders"></p>
-                        <p class="text-gray-600 text-sm">Pending</p>
+                        <p class="text-2xl font-bold mb-1"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-16' : 'text-gray-800'"
+                           x-text="loading ? '...' : stats.pending_orders"></p>
+                        <p class="text-sm"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-24' : 'text-gray-600'">
+                           <span x-show="!loading">Pending</span>
+                        </p>
                     </div>
                 </div>
             </div>
-            
-            <div class="bg-white rounded-lg shadow-md p-6">
+
+            <div class="bg-white rounded-lg shadow-md p-6" :class="{'animate-pulse': loading}">
                 <div class="flex items-center">
-                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                        <i class="fas fa-dollar-sign text-purple-600 text-xl"></i>
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center mr-4"
+                         :class="loading ? 'bg-gray-200' : 'bg-purple-100'">
+                        <i x-show="!loading" class="fas fa-dollar-sign text-purple-600 text-xl"></i>
                     </div>
                     <div>
-                        <p class="text-2xl font-bold text-gray-800">$<span x-text="stats.total_spent"></span></p>
-                        <p class="text-gray-600 text-sm">Total Spent</p>
+                        <p class="text-2xl font-bold mb-1"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-16' : 'text-gray-800'">
+                           <span x-show="!loading">$</span><span x-text="loading ? '...' : stats.total_spent"></span>
+                        </p>
+                        <p class="text-sm"
+                           :class="loading ? 'bg-gray-200 text-transparent rounded w-24' : 'text-gray-600'">
+                           <span x-show="!loading">Total Spent</span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -78,26 +103,39 @@
                     </div>
                     
                     <div class="divide-y divide-gray-200">
-                        <template x-for="order in recentOrders" :key="order?.id || Math.random()">
-                            <div class="p-6 hover:bg-gray-50 transition">
+                        <template x-for="order in (loading ? [1, 2, 3] : recentOrders)" :key="loading ? order : (order?.id || Math.random())">
+                            <div class="p-6 transition"
+                                 :class="loading ? 'animate-pulse' : 'hover:bg-gray-50'">
                                 <div class="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 class="font-medium" x-text="order?.order_number || 'N/A'"></h3>
-                                        <p class="text-sm text-gray-500" x-text="formatDate(order?.created_at)"></p>
+                                    <div class="flex-1">
+                                        <h3 class="font-medium mb-1"
+                                            :class="loading ? 'bg-gray-200 text-transparent rounded w-32' : ''"
+                                            x-text="loading ? '...' : (order?.order_number || 'N/A')"></h3>
+                                        <p class="text-sm"
+                                           :class="loading ? 'bg-gray-200 text-transparent rounded w-24' : 'text-gray-500'"
+                                           x-text="loading ? '...' : formatDate(order?.created_at)"></p>
                                     </div>
                                     <span class="px-3 py-1 rounded-full text-xs font-medium"
-                                          :class="getStatusColor(order?.status)"
-                                          x-text="order?.status || 'UNKNOWN'"></span>
+                                          :class="loading ? 'bg-gray-200 text-transparent' : getStatusColor(order?.status)"
+                                          x-text="loading ? '......' : (order?.status || 'UNKNOWN')"></span>
                                 </div>
-                                
+
                                 <div class="flex justify-between items-center">
-                                    <div class="text-sm text-gray-600">
-                                        <span x-text="order?.items?.length || 0"></span> items • 
-                                        <span x-text="order?.fulfillment_method || 'N/A'"></span>
+                                    <div class="text-sm"
+                                         :class="loading ? 'bg-gray-200 text-transparent rounded w-40' : 'text-gray-600'">
+                                        <span x-show="!loading">
+                                            <span x-text="order?.items?.length || 0"></span> items •
+                                            <span x-text="order?.fulfillment_method || 'N/A'"></span>
+                                        </span>
+                                        <span x-show="loading">...</span>
                                     </div>
                                     <div class="flex items-center space-x-3">
-                                        <span class="font-semibold">$<span x-text="order?.total_aud || '0.00'"></span></span>
-                                        <a :href="'/orders/' + (order?.id || '#')" 
+                                        <span class="font-semibold"
+                                              :class="loading ? 'bg-gray-200 text-transparent rounded w-16' : ''">
+                                            <span x-show="!loading">$<span x-text="order?.total_aud || '0.00'"></span></span>
+                                            <span x-show="loading">...</span>
+                                        </span>
+                                        <a x-show="!loading" :href="'/orders/' + (order?.id || '#')"
                                            class="text-blue-600 hover:text-blue-800 text-sm">
                                             View <i class="fas fa-external-link-alt ml-1"></i>
                                         </a>
@@ -105,8 +143,8 @@
                                 </div>
                             </div>
                         </template>
-                        
-                        <div x-show="recentOrders.length === 0" class="p-12 text-center text-gray-500">
+
+                        <div x-show="!loading && recentOrders.length === 0" class="p-12 text-center text-gray-500">
                             <i class="fas fa-shopping-bag text-4xl mb-4"></i>
                             <h3 class="text-lg font-medium mb-2">No orders yet</h3>
                             <p class="text-sm mb-4">Start shopping to see your orders here</p>
@@ -230,6 +268,7 @@
 
 function dashboardData() {
     return {
+        loading: true, // Initialize loading state
         user: null,
         stats: {
             total_orders: 0,
@@ -271,7 +310,8 @@ function dashboardData() {
         async loadDashboardData() {
             try {
                 console.log('📊 Loading dashboard data...');
-                
+                this.loading = true;
+
                 // Load recent orders with proper pagination parameter
                 const ordersResponse = await axios.get('/web/orders?per_page=5', {
                     headers: {
@@ -280,7 +320,7 @@ function dashboardData() {
                     }
                 });
                 console.log('📦 Orders response:', ordersResponse.data);
-                
+
                 // Handle both paginated and direct data response
                 if (ordersResponse.data.data && ordersResponse.data.data.data) {
                     // Paginated response
@@ -291,16 +331,20 @@ function dashboardData() {
                 } else {
                     this.recentOrders = [];
                 }
-                
+
                 console.log('✅ Recent orders loaded:', this.recentOrders.length);
-                
+
                 // Calculate stats from orders
                 this.calculateStats();
-                
+
             } catch (error) {
                 console.error('❌ Failed to load dashboard data:', error);
                 this.recentOrders = []; // Ensure it's always an array
                 this.calculateStats(); // Still calculate stats with empty data
+            } finally {
+                // Always set loading to false, even if there's an error
+                this.loading = false;
+                console.log('✅ Dashboard loading complete');
             }
         },
         

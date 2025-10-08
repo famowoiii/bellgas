@@ -151,8 +151,7 @@ class OrderController extends Controller
 
             $order->load(['items.productVariant.product.photos', 'address']);
 
-            // Broadcast real-time order creation event
-            broadcast(new OrderUpdated($order, 'created'))->toOthers();
+            // Broadcasting disabled - using polling for real-time updates
 
             // Send order confirmation email
             try {
@@ -284,22 +283,7 @@ class OrderController extends Controller
             // Only load minimal data needed for response first
             $order->load(['user:id,first_name,last_name,email', 'items:id,order_id,quantity,total_price_aud']);
 
-            // Defer heavy operations after response to avoid blocking
-            defer(function () use ($order, $oldStatus, $newStatus) {
-                try {
-                    // Load full relationships for broadcasting only when needed
-                    $orderForBroadcast = Order::with(['items.productVariant.product', 'address', 'user'])
-                        ->find($order->id);
-
-                    // Broadcast real-time order status update event
-                    broadcast(new OrderUpdated($orderForBroadcast, 'status_changed', $oldStatus, $newStatus))->toOthers();
-
-                    // Send status change notification asynchronously
-                    $order->user->notify(new OrderStatusChanged($order, $oldStatus, $newStatus));
-                } catch (\Exception $e) {
-                    \Log::warning('Failed to send order status notification or broadcast: ' . $e->getMessage());
-                }
-            });
+            // Broadcasting disabled - using polling for real-time updates
 
             return response()->json([
                 'success' => true,
@@ -618,16 +602,11 @@ class OrderController extends Controller
 
             DB::commit();
 
-            // Load order with relationships
-            $order->load(['items.productVariant.product.photos', 'address', 'events', 'user']);
-
-            // Broadcast real-time payment confirmation event
-            broadcast(new OrderUpdated($order, 'status_changed', 'PENDING', 'PAID'))->toOthers();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment confirmed successfully',
-                'data' => $order
+            \Log::info('Payment confirmed successfully', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'payment_intent_id' => $request->payment_intent_id,
+                'status' => 'PAID'
             ]);
 
         } catch (\Exception $e) {
@@ -644,6 +623,57 @@ class OrderController extends Controller
                 'message' => 'Failed to confirm payment: ' . $e->getMessage()
             ], 500);
         }
+
+        // Reduce stock after successful payment
+        try {
+            foreach ($order->items as $orderItem) {
+                $variant = $orderItem->productVariant;
+                if ($variant) {
+                    $oldStock = $variant->stock_quantity;
+                    $variant->decrement('stock_quantity', $orderItem->quantity);
+
+                    \Log::info('Stock reduced after payment', [
+                        'order_id' => $order->id,
+                        'variant_id' => $variant->id,
+                        'product' => $variant->product->name ?? 'Unknown',
+                        'variant' => $variant->name,
+                        'old_stock' => $oldStock,
+                        'reduced_by' => $orderItem->quantity,
+                        'new_stock' => $variant->stock_quantity - $orderItem->quantity
+                    ]);
+                }
+            }
+        } catch (\Exception $stockError) {
+            \Log::error('Failed to reduce stock after payment', [
+                'order_id' => $order->id,
+                'error' => $stockError->getMessage()
+            ]);
+            // Don't fail the payment if stock reduction fails - just log it
+        }
+
+        // Clear cart after successful payment (outside transaction to avoid blocking)
+        try {
+            $cartController = app(\App\Http\Controllers\Api\CartController::class);
+            $cartController->clear($request);
+            \Log::info('Cart cleared after payment confirmation', ['order_id' => $order->id]);
+        } catch (\Exception $cartError) {
+            \Log::warning('Failed to clear cart after payment', [
+                'order_id' => $order->id,
+                'error' => $cartError->getMessage()
+            ]);
+        }
+
+        // Load order with relationships
+        $order->load(['items.productVariant.product.photos', 'address', 'events', 'user']);
+
+        // Refresh the order to get latest status
+        $order->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment confirmed successfully',
+            'data' => $order
+        ]);
     }
 
     /**

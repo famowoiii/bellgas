@@ -120,7 +120,7 @@
 
                                     <span x-show="!isAddingToCart(product.variant_id) && product.stock <= 0"
                                           class="text-gray-300">
-                                        <i class="fas fa-times mr-2"></i>Stok Habis
+                                        <i class="fas fa-times mr-2"></i>Out of Stock
                                     </span>
                                 </div>
 
@@ -167,12 +167,12 @@ function beautifulProducts() {
 
             if (!product.variant_id) {
                 console.error('❌ No variant_id found for product:', product);
-                this.showNotification('Product variant tidak tersedia', 'error');
+                this.showNotification('Product variant not available', 'error');
                 return;
             }
 
             if (product.stock <= 0) {
-                this.showNotification('Produk sedang habis', 'error');
+                this.showNotification('Product is out of stock', 'error');
                 return;
             }
 
@@ -214,7 +214,7 @@ function beautifulProducts() {
 
                 if (response.data.success) {
                     // Show success message
-                    this.showNotification('Produk berhasil ditambahkan ke keranjang!', 'success');
+                    this.showNotification('Product successfully added to cart!', 'success');
 
                     // Trigger cart refresh with multiple fallback methods
                     console.log('🔄 Checking window.app availability:', !!window.app);
@@ -250,7 +250,7 @@ function beautifulProducts() {
                     console.log('🎉 Product added to cart successfully');
                 } else {
                     console.error('❌ Server returned success: false');
-                    this.showNotification(response.data.message || 'Gagal menambahkan produk', 'error');
+                    this.showNotification(response.data.message || 'Failed to add product', 'error');
                 }
             } catch (error) {
                 console.error('❌ Add to cart error:', error);
@@ -260,12 +260,12 @@ function beautifulProducts() {
                     console.error('Error status:', error.response.status);
 
                     if (error.response.status === 401) {
-                        this.showNotification('Session expired, silakan login kembali', 'error');
+                        this.showNotification('Session expired, please log in again', 'error');
                         setTimeout(() => window.location.href = '/login', 2000);
                     } else if (error.response.data && error.response.data.message) {
                         this.showNotification(error.response.data.message, 'error');
                     } else {
-                        this.showNotification('Gagal menambahkan produk ke keranjang', 'error');
+                        this.showNotification('Failed to add product to cart', 'error');
                     }
                 } else {
                     this.showNotification('Network error. Please try again.', 'error');
@@ -300,7 +300,7 @@ function beautifulProducts() {
                     console.log(`✅ Loaded ${this.products.length} products with prices:`, this.products.map(p => `${p.name}: $${p.price}`));
                 } else {
                     console.error('❌ Failed to load products:', response.data);
-                    this.showNotification('Gagal memuat produk', 'error');
+                    this.showNotification('Failed to load products', 'error');
                 }
             } catch (error) {
                 console.error('❌ Error loading products:', error);

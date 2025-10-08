@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderEvent;
 use App\Models\PaymentEvent;
 use App\Services\StripeService;
+use App\Events\NewPaidOrderEvent;
 use Stripe\Webhook;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -124,6 +125,17 @@ class StripeWebhookController extends Controller
                 'payment_method' => $paymentIntent->charges->data[0]->payment_method_details->type ?? 'unknown',
             ],
         ]);
+
+        // Load relationships for the event
+        $order->load(['items.productVariant.product', 'address']);
+
+        // Broadcast real-time notification to admin
+        try {
+            broadcast(new NewPaidOrderEvent($order))->toOthers();
+            Log::info("Real-time notification sent for paid order {$order->order_number}");
+        } catch (\Exception $e) {
+            Log::error("Failed to broadcast new paid order event: " . $e->getMessage());
+        }
 
         // If it's a pickup order, it can be moved to READY status after payment
         if ($order->fulfillment_method === 'PICKUP') {

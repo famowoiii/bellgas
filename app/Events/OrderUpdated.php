@@ -11,7 +11,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class OrderUpdated implements ShouldBroadcast
+class OrderUpdated // Removed ShouldBroadcast to prevent Pusher errors
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

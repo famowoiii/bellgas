@@ -5,11 +5,16 @@
 @push('head-scripts')
 <!-- Stripe.js - Only load on checkout page -->
 <script src="https://js.stripe.com/v3/"></script>
+<!-- Stripe Publishable Key -->
+<script>
+    window.stripePublishableKey = '{{ config("services.stripe.public") }}';
+    console.log('✅ Stripe Publishable Key set:', window.stripePublishableKey ? window.stripePublishableKey.substring(0, 20) + '...' : 'NOT SET');
+</script>
 <!-- Alpine.js cloak styling -->
 <style>
 [x-cloak] { display: none !important; }
 
-/* Fallback untuk tombol jika Alpine.js gagal */
+/* Fallback for button if Alpine.js fails */
 button[data-testid="place-order-btn"]:empty::after {
     content: "🛒 Place Order";
     display: flex;
@@ -125,10 +130,29 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
                     </div>
 
                     <!-- Loading State -->
-                    <div x-show="addressesLoading" class="flex items-center justify-center py-6">
-                        <div class="flex items-center space-x-3 text-gray-600">
-                            <div class="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
-                            <span>Loading your saved addresses...</span>
+                    <div x-show="addressesLoading" class="space-y-3">
+                        <!-- Skeleton Loaders -->
+                        <template x-for="i in 2" :key="i">
+                            <div class="p-4 border-2 border-gray-200 rounded-lg animate-pulse">
+                                <div class="flex items-start">
+                                    <div class="w-4 h-4 bg-gray-200 rounded-full mt-1 mr-3"></div>
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-4 bg-gray-200 rounded w-32"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-48"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-40"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <!-- Loading Text -->
+                        <div class="flex items-center justify-center py-2">
+                            <div class="flex items-center space-x-2 text-gray-600 text-sm">
+                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Loading your saved addresses...</span>
+                            </div>
                         </div>
                     </div>
 
@@ -355,10 +379,22 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
 
                     <!-- Place Order Button - Always Visible -->
                     <button @click="placeOrder()"
-                            class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            :disabled="loading"
+                            class="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             data-testid="place-order-btn">
-                        <i class="fas fa-credit-card mr-2"></i>
-                        <span>Place Order - $</span><span x-text="total">0.00</span>
+                        <!-- Loading State -->
+                        <span x-show="loading" class="flex items-center">
+                            <svg class="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Processing...
+                        </span>
+                        <!-- Normal State -->
+                        <span x-show="!loading">
+                            <i class="fas fa-credit-card mr-2"></i>
+                            Place Order - $<span x-text="total">0.00</span>
+                        </span>
                     </button>
                 </div>
             </div>
@@ -366,28 +402,60 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
     </div>
 
     <!-- Stripe Payment Modal -->
-    <div x-show="showPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <div x-show="showPaymentModal"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div x-transition:enter="transition ease-out duration-300 transform"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-200 transform"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95"
+             class="bg-white rounded-lg max-w-md w-full p-6">
+
+            <!-- Loading Overlay -->
+            <div x-show="!stripe || loading" class="absolute inset-0 bg-white bg-opacity-90 rounded-lg flex items-center justify-center z-10">
+                <div class="text-center">
+                    <svg class="animate-spin h-12 w-12 text-blue-600 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-600 font-medium">Loading payment form...</p>
+                </div>
+            </div>
+
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">Complete Payment</h3>
                 <button @click="cancelPayment()" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div class="mb-4 p-3 bg-gray-50 rounded">
                 <p class="text-sm text-gray-600">Order Total: <span class="font-bold">$<span x-text="total"></span></span></p>
             </div>
-            
+
             <!-- Stripe Elements will be mounted here -->
             <div id="card-element" class="mb-4 p-3 border border-gray-300 rounded"></div>
             <div id="card-errors" class="text-red-600 text-sm mb-4"></div>
-            
-            <button @click="confirmPayment()" 
+
+            <button @click="confirmPayment()"
                     :disabled="!stripe || paymentProcessing"
-                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50">
-                <span x-show="!paymentProcessing">Confirm Payment</span>
-                <span x-show="paymentProcessing">Processing...</span>
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 flex items-center justify-center">
+                <!-- Loading Spinner -->
+                <svg x-show="paymentProcessing" class="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-show="!paymentProcessing">
+                    <i class="fas fa-lock mr-2"></i>Confirm Payment
+                </span>
+                <span x-show="paymentProcessing">Processing Payment...</span>
             </button>
         </div>
     </div>
@@ -581,10 +649,8 @@ function checkoutPage() {
                 // Setup Stripe if authenticated and skip address loading for now
                 if (this.user) {
                     this.setupStripe(); // This is synchronous
-                    // Skip address loading temporarily due to timeout issues
-                    console.log('⚠️ Address loading disabled temporarily - user can add new address');
-                    this.addressesLoading = false;
-                    this.addressesError = 'Address loading temporarily disabled. Please add a new address below.';
+                    // Load addresses
+                    this.loadAddresses();
                 }
                 
                 this.updateOrderItems();
@@ -1017,31 +1083,33 @@ function checkoutPage() {
         
         async placeOrder() {
             if (!this.canPlaceOrder) return;
-            
+
             this.loading = true;
-            
+
             // Debug logging
             console.log('Placing order with data:', this.form);
             console.log('Cart contents:', this.cart);
             console.log('Can place order:', this.canPlaceOrder);
-            
+
             try {
                 const response = await axios.post('/api/checkout/create-payment-intent', this.form);
-                
+
                 this.currentOrder = response.data.order;
                 const clientSecret = response.data.clientSecret;
-                
-                // Show payment modal
-                this.showPaymentModal = true;
-                
-                // Mount card element
-                this.$nextTick(() => {
-                    this.cardElement.mount('#card-element');
-                });
-                
+
                 // Store client secret for payment
                 this.clientSecret = clientSecret;
-                
+
+                // Show payment modal
+                this.showPaymentModal = true;
+
+                // Mount card element safely with delay
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        this.mountCardElement();
+                    }, 300); // Wait for modal to fully render
+                });
+
             } catch (error) {
                 console.error('Checkout error:', error);
                 console.error('Error response:', error.response);
@@ -1067,79 +1135,135 @@ function checkoutPage() {
         },
         
         async confirmPayment() {
-            if (!this.stripe || !this.cardElement) return;
-            
-            this.paymentProcessing = true;
-            
-            const {error, paymentIntent} = await this.stripe.confirmCardPayment(this.clientSecret, {
-                payment_method: {
-                    card: this.cardElement,
-                    billing_details: {
-                        name: `${this.user.first_name} ${this.user.last_name}`,
-                        email: this.user.email,
-                    },
-                }
-            });
-            
-            if (error) {
-                this.paymentProcessing = false;
-                document.getElementById('card-errors').textContent = error.message;
+            if (!this.stripe || !this.cardElement) {
+                console.error('❌ Stripe or card element not available');
+                document.getElementById('card-errors').textContent = 'Payment system not initialized. Please refresh and try again.';
                 return;
             }
 
-            // Payment successful with Stripe, now confirm with our backend
-            if (paymentIntent && paymentIntent.status === 'succeeded') {
-                try {
-                    console.log('Payment intent succeeded:', paymentIntent.id);
-                    
-                    // Call our backend to update order status
-                    const response = await axios.post(`/api/orders/${this.currentOrder.order_number}/confirm-payment`, {
-                        payment_intent_id: paymentIntent.id,
-                        payment_method_id: paymentIntent.payment_method
-                    }, {
-                        headers: {
-                            'Authorization': `Bearer ${this.getToken()}`,
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    });
+            this.paymentProcessing = true;
 
-                    if (response.data.success) {
-                        console.log('Order status updated successfully');
-                        
-                        // Payment successful
-                        this.showPaymentModal = false;
-                        if (window.app) {
-                            window.app.cart = []; // Clear cart
+            try {
+                // Verify card element is still mounted
+                const cardElementContainer = document.getElementById('card-element');
+                const hasIframe = cardElementContainer && cardElementContainer.querySelector('iframe');
+
+                if (!hasIframe) {
+                    console.log('⚠️ Card element not mounted, attempting to remount...');
+
+                    try {
+                        // Recreate card element if needed
+                        if (!this.cardElement) {
+                            console.log('🔄 Recreating card element...');
+                            const elements = this.stripe.elements();
+                            this.cardElement = elements.create('card', {
+                                style: {
+                                    base: {
+                                        fontSize: '16px',
+                                        color: '#424770',
+                                        '::placeholder': { color: '#aab7c4' }
+                                    },
+                                    invalid: { color: '#dc3545' }
+                                }
+                            });
                         }
-                        
-                        this.showNotification('Payment successful! Order status updated. Thank you for your order.', 'success');
-                        
-                        // Redirect to order confirmation
-                        setTimeout(() => {
-                            window.location.href = `/orders/${this.currentOrder.order_number}`;
-                        }, 2000);
-                    } else {
-                        console.error('Failed to update order status:', response.data.message);
-                        this.showNotification('Payment was processed but there was an issue updating your order. Please contact support.', 'warning');
-                        
-                        // Still redirect to order page
+
+                        // Mount the element
+                        this.cardElement.mount('#card-element');
+                        console.log('✅ Card element remounted');
+
+                        // Wait for mount to complete
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+
+                    } catch (mountError) {
+                        console.error('❌ Failed to remount card element:', mountError);
+                        this.paymentProcessing = false;
+                        document.getElementById('card-errors').textContent = 'Failed to load payment form. Please refresh and try again.';
+                        return;
+                    }
+                }
+
+                console.log('💳 Confirming card payment...');
+
+                const {error, paymentIntent} = await this.stripe.confirmCardPayment(this.clientSecret, {
+                    payment_method: {
+                        card: this.cardElement,
+                        billing_details: {
+                            name: `${this.user.first_name} ${this.user.last_name}`,
+                            email: this.user.email,
+                        },
+                    }
+                });
+
+                if (error) {
+                    console.error('❌ Payment error:', error);
+                    this.paymentProcessing = false;
+                    document.getElementById('card-errors').textContent = error.message;
+                    return;
+                }
+
+                // Payment successful with Stripe, now confirm with our backend
+                if (paymentIntent && paymentIntent.status === 'succeeded') {
+                    try {
+                        console.log('Payment intent succeeded:', paymentIntent.id);
+
+                        // Call our backend to update order status
+                        const response = await axios.post(`/api/orders/${this.currentOrder.order_number}/confirm-payment`, {
+                            payment_intent_id: paymentIntent.id,
+                            payment_method_id: paymentIntent.payment_method
+                        }, {
+                            headers: {
+                                'Authorization': `Bearer ${this.getToken()}`,
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.data.success) {
+                            console.log('Order status updated successfully');
+
+                            // Payment successful
+                            this.showPaymentModal = false;
+                            if (window.app) {
+                                window.app.cart = []; // Clear cart
+                            }
+
+                            this.showNotification('Payment successful! Order status updated. Thank you for your order.', 'success');
+
+                            // Redirect to order confirmation
+                            setTimeout(() => {
+                                window.location.href = `/orders/${this.currentOrder.order_number}`;
+                            }, 2000);
+                        } else {
+                            console.error('Failed to update order status:', response.data.message);
+                            this.showNotification('Payment was processed but there was an issue updating your order. Please contact support.', 'warning');
+
+                            // Still redirect to order page
+                            setTimeout(() => {
+                                window.location.href = `/orders/${this.currentOrder.order_number}`;
+                            }, 3000);
+                        }
+
+                    } catch (apiError) {
+                        console.error('Failed to confirm payment with backend:', apiError);
+                        this.showNotification('Payment was processed but there was an issue confirming your order. Please contact support.', 'warning');
+
+                        // Still redirect to order page as payment went through Stripe
                         setTimeout(() => {
                             window.location.href = `/orders/${this.currentOrder.order_number}`;
                         }, 3000);
                     }
-
-                } catch (apiError) {
-                    console.error('Failed to confirm payment with backend:', apiError);
-                    this.showNotification('Payment was processed but there was an issue confirming your order. Please contact support.', 'warning');
-                    
-                    // Still redirect to order page as payment went through Stripe
-                    setTimeout(() => {
-                        window.location.href = `/orders/${this.currentOrder.order_number}`;
-                    }, 3000);
                 }
+            } catch (confirmError) {
+                console.error('❌ Error during payment confirmation:', confirmError);
+                this.paymentProcessing = false;
+                const cardErrors = document.getElementById('card-errors');
+                if (cardErrors) {
+                    cardErrors.textContent = 'Payment processing failed. Please try again.';
+                }
+                return;
             }
-            
+
             this.paymentProcessing = false;
         },
         
@@ -1237,21 +1361,27 @@ function checkoutPage() {
                     return;
                 }
 
+                // Check if already mounted by looking for iframe
+                const existingIframe = cardElementContainer.querySelector('iframe');
+                if (existingIframe) {
+                    console.log('✅ Card element already mounted');
+                    return;
+                }
+
                 // Clear any existing content
                 cardElementContainer.innerHTML = '';
 
                 // Unmount existing element if attached
                 try {
-                    if (this.cardElement._attached) {
-                        console.log('🔄 Unmounting existing card element');
-                        this.cardElement.unmount();
-                    }
+                    this.cardElement.unmount();
+                    console.log('🔄 Unmounted previous card element');
                 } catch (unmountError) {
-                    console.warn('⚠️ Error unmounting card element:', unmountError);
+                    // Ignore unmount errors - element may not have been mounted
+                    console.log('ℹ️ No previous card element to unmount');
                 }
 
                 // Mount fresh card element
-                console.log('🔧 Mounting card element');
+                console.log('🔧 Mounting card element...');
                 this.cardElement.mount('#card-element');
                 console.log('✅ Card element mounted successfully');
 

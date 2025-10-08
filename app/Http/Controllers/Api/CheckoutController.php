@@ -22,6 +22,9 @@ class CheckoutController extends Controller
 
     public function createPaymentIntent(CreatePaymentIntentRequest $request): JsonResponse
     {
+        // Increase max execution time for payment processing
+        set_time_limit(120); // 2 minutes
+
         return DB::transaction(function () use ($request) {
             try {
                 \Log::info('Checkout request started', [

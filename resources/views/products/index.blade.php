@@ -328,7 +328,7 @@ function simpleProductsApp() {
             }
 
             if (!product.variant_id) {
-                this.showNotification('Product variant tidak tersedia', 'error');
+                this.showNotification('Product variant not available', 'error');
                 return;
             }
 

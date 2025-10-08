@@ -47,8 +47,8 @@ class StripeTestController extends Controller
 
     private function confirmPaymentWithTestCard(string $paymentIntentId): array
     {
-        // Gunakan test payment method token yang sudah disediakan Stripe
-        // pm_card_visa adalah test token untuk Visa card yang selalu berhasil
+        // Use test payment method token provided by Stripe
+        // pm_card_visa is a test token for Visa card that always succeeds
         $testPaymentMethodId = 'pm_card_visa';
 
         // Konfirmasi payment intent dengan test payment method
