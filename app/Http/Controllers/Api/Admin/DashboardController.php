@@ -48,6 +48,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
+            'stats' => $stats,
             'data' => [
                 'stats' => $stats,
                 'user' => Auth::user(),

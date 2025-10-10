@@ -11,6 +11,11 @@ Route::get('/home', function () {
     return view('home');
 })->name('home');
 
+// Test WebSocket Route
+Route::get('/test-websocket', function () {
+    return view('test-websocket');
+})->name('test.websocket');
+
 // Authentication Routes
 Route::get('/login', function () {
     return view('auth.login');

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
@@ -16,24 +17,38 @@ class ProductController extends Controller
         // For admin/merchant, show all products; for customers, show only active
         $showAll = auth()->check() && in_array(auth()->user()->role, ['ADMIN', 'MERCHANT']);
 
-        $query = Product::with(['variants', 'photos', 'category']);
+        // Build cache key based on request parameters
+        $cacheKey = 'products_' . ($showAll ? 'all' : 'active') .
+                    '_cat_' . ($request->get('category') ?? 'all') .
+                    '_search_' . ($request->get('search') ?? 'none') .
+                    '_page_' . $request->get('page', 1);
 
-        // Only filter active products for non-admin users
-        if (!$showAll) {
-            $query->where('is_active', true);
-        }
+        // Cache products for 5 minutes (300 seconds)
+        $products = Cache::remember($cacheKey, 300, function() use ($request, $showAll) {
+            $query = Product::select('id', 'name', 'slug', 'description', 'weight_kg', 'category', 'is_active', 'created_at', 'updated_at')
+                ->with([
+                    'variants:id,product_id,name,weight_kg,price_aud,stock_quantity,is_active',
+                    'photos:id,product_id,filename',
+                    'category:id,name,slug'
+                ]);
 
-        // Filter by category
-        if ($request->has('category')) {
-            $query->where('category', $request->category);
-        }
+            // Only filter active products for non-admin users
+            if (!$showAll) {
+                $query->where('is_active', true);
+            }
 
-        // Search by name
-        if ($request->has('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
-        }
+            // Filter by category
+            if ($request->has('category')) {
+                $query->where('category', $request->category);
+            }
 
-        $products = $query->paginate(50); // Increased limit for admin
+            // Search by name
+            if ($request->has('search')) {
+                $query->where('name', 'like', '%' . $request->search . '%');
+            }
+
+            return $query->paginate(50); // Increased limit for admin
+        });
 
         return response()->json([
             'message' => 'Products retrieved successfully',
@@ -55,22 +70,30 @@ class ProductController extends Controller
             ], 404);
         }
 
-        $product->load(['variants' => function($query) {
-            $query->where('is_active', true);
-        }, 'photos']);
+        // Cache individual product for 10 minutes
+        $cachedProduct = Cache::remember('product_' . $product->id, 600, function() use ($product) {
+            $product->load([
+                'variants' => function($query) {
+                    $query->select('id', 'product_id', 'name', 'weight_kg', 'price_aud', 'stock_quantity', 'is_active', 'created_at')
+                          ->where('is_active', true);
+                },
+                'photos:id,product_id,filename'
+            ]);
+            return $product;
+        });
 
         return response()->json([
             'message' => 'Product retrieved successfully',
             'data' => [
-                'id' => $product->id,
-                'name' => $product->name,
-                'slug' => $product->slug,
-                'description' => $product->description,
-                'weight_kg' => $product->weight_kg,
-                'category' => $product->category,
-                'is_active' => $product->is_active,
-                'created_at' => $product->created_at,
-                'variants' => $product->variants->map(function ($variant) {
+                'id' => $cachedProduct->id,
+                'name' => $cachedProduct->name,
+                'slug' => $cachedProduct->slug,
+                'description' => $cachedProduct->description,
+                'weight_kg' => $cachedProduct->weight_kg,
+                'category' => $cachedProduct->category,
+                'is_active' => $cachedProduct->is_active,
+                'created_at' => $cachedProduct->created_at,
+                'variants' => $cachedProduct->variants->map(function ($variant) {
                     return [
                         'id' => $variant->id,
                         'name' => $variant->name,
@@ -81,7 +104,7 @@ class ProductController extends Controller
                         'is_active' => $variant->is_active,
                     ];
                 }),
-                'photos' => $product->photos->map(function ($photo) {
+                'photos' => $cachedProduct->photos->map(function ($photo) {
                     return [
                         'id' => $photo->id,
                         'url' => $photo->url,

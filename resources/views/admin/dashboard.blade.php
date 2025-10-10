@@ -137,13 +137,13 @@
                     <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
                         <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
                     </div>
-                    <div>
+                    <div class="flex-1">
                         <div x-show="loading" class="space-y-2">
-                            <div class="h-6 bg-gray-200 rounded animate-pulse"></div>
-                            <div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-                            <div class="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                            <div class="h-6 bg-gray-200 rounded animate-pulse w-24"></div>
+                            <div class="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                            <div class="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
                         </div>
-                        <div x-show="!loading">
+                        <div x-show="!loading" x-transition>
                             <p class="text-2xl font-bold text-gray-800">$<span x-text="metrics.total_revenue"></span></p>
                             <p class="text-gray-600 text-sm">Total Revenue</p>
                             <p class="text-xs text-green-600" x-text="metrics.revenue_change"></p>
@@ -157,10 +157,17 @@
                     <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
                         <i class="fas fa-shopping-bag text-blue-600 text-xl"></i>
                     </div>
-                    <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="metrics.total_orders"></p>
-                        <p class="text-gray-600 text-sm">Total Orders</p>
-                        <p class="text-xs text-blue-600" x-text="metrics.orders_change"></p>
+                    <div class="flex-1">
+                        <div x-show="loading" class="space-y-2">
+                            <div class="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                            <div class="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                            <div class="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                        </div>
+                        <div x-show="!loading" x-transition>
+                            <p class="text-2xl font-bold text-gray-800" x-text="metrics.total_orders"></p>
+                            <p class="text-gray-600 text-sm">Total Orders</p>
+                            <p class="text-xs text-blue-600" x-text="metrics.orders_change"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -170,10 +177,17 @@
                     <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
                         <i class="fas fa-users text-purple-600 text-xl"></i>
                     </div>
-                    <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="metrics.active_customers"></p>
-                        <p class="text-gray-600 text-sm">Active Customers</p>
-                        <p class="text-xs text-purple-600" x-text="metrics.customers_change"></p>
+                    <div class="flex-1">
+                        <div x-show="loading" class="space-y-2">
+                            <div class="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                            <div class="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                            <div class="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                        </div>
+                        <div x-show="!loading" x-transition>
+                            <p class="text-2xl font-bold text-gray-800" x-text="metrics.active_customers"></p>
+                            <p class="text-gray-600 text-sm">Active Customers</p>
+                            <p class="text-xs text-purple-600" x-text="metrics.customers_change"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -183,10 +197,17 @@
                     <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
                         <i class="fas fa-fire text-orange-600 text-xl"></i>
                     </div>
-                    <div>
-                        <p class="text-2xl font-bold text-gray-800" x-text="metrics.products_sold"></p>
-                        <p class="text-gray-600 text-sm">Products Sold</p>
-                        <p class="text-xs text-orange-600" x-text="metrics.products_change"></p>
+                    <div class="flex-1">
+                        <div x-show="loading" class="space-y-2">
+                            <div class="h-6 bg-gray-200 rounded animate-pulse w-16"></div>
+                            <div class="h-4 bg-gray-200 rounded animate-pulse w-20"></div>
+                            <div class="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                        </div>
+                        <div x-show="!loading" x-transition>
+                            <p class="text-2xl font-bold text-gray-800" x-text="metrics.products_sold"></p>
+                            <p class="text-gray-600 text-sm">Products Sold</p>
+                            <p class="text-xs text-orange-600" x-text="metrics.products_change"></p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -218,22 +239,38 @@
 
                     <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                         <!-- Loading skeleton for orders -->
-                        <div x-show="loading" class="space-y-4 p-4">
-                            <div class="animate-pulse" x-data x-init="setTimeout(() => {}, 100)" x-for="i in 5">
-                                <div class="flex items-center space-x-4">
+                        <div x-show="loading" class="p-4">
+                            <div class="space-y-4 animate-pulse">
+                                <div class="flex items-center space-x-4 pb-4 border-b border-gray-200">
                                     <div class="flex-1 space-y-2">
+                                        <div class="h-5 bg-gray-200 rounded w-1/3"></div>
                                         <div class="h-4 bg-gray-200 rounded w-1/4"></div>
-                                        <div class="h-3 bg-gray-200 rounded w-1/3"></div>
                                         <div class="h-3 bg-gray-200 rounded w-1/2"></div>
                                     </div>
-                                    <div class="h-8 w-16 bg-gray-200 rounded"></div>
+                                    <div class="h-8 w-20 bg-gray-200 rounded"></div>
+                                </div>
+                                <div class="flex items-center space-x-4 pb-4 border-b border-gray-200">
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-5 bg-gray-200 rounded w-1/3"></div>
+                                        <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                                    </div>
+                                    <div class="h-8 w-20 bg-gray-200 rounded"></div>
+                                </div>
+                                <div class="flex items-center space-x-4 pb-4 border-b border-gray-200">
+                                    <div class="flex-1 space-y-2">
+                                        <div class="h-5 bg-gray-200 rounded w-1/3"></div>
+                                        <div class="h-4 bg-gray-200 rounded w-1/4"></div>
+                                        <div class="h-3 bg-gray-200 rounded w-1/2"></div>
+                                    </div>
+                                    <div class="h-8 w-20 bg-gray-200 rounded"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Actual orders -->
-                        <template x-for="order in filteredOrders" :key="order.id" x-show="!loading">
-                            <div class="p-4 hover:bg-gray-50 transition">
+                        <template x-for="order in filteredOrders" :key="order.id">
+                            <div class="p-4 hover:bg-gray-50 transition" x-show="!loading" x-transition>
                                 <div class="flex justify-between items-start">
                                     <div class="flex-1">
                                         <div class="flex items-center space-x-3 mb-2">
@@ -314,21 +351,33 @@
                     <h3 class="text-lg font-semibold mb-4">Order Status</h3>
                     <div class="space-y-3">
                         <!-- Loading skeleton for order status -->
-                        <div x-show="loading" class="space-y-3">
-                            <div class="animate-pulse" x-for="i in 4">
-                                <div class="flex justify-between items-center">
-                                    <div class="h-4 bg-gray-200 rounded w-1/3"></div>
-                                    <div class="flex items-center space-x-2">
-                                        <div class="w-20 bg-gray-200 rounded-full h-2"></div>
-                                        <div class="h-4 bg-gray-200 rounded w-6"></div>
-                                    </div>
+                        <div x-show="loading" class="space-y-3 animate-pulse">
+                            <div class="flex justify-between items-center">
+                                <div class="h-4 bg-gray-200 rounded w-20"></div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-20 bg-gray-200 rounded-full h-2"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-6"></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="h-4 bg-gray-200 rounded w-24"></div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-20 bg-gray-200 rounded-full h-2"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-6"></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="h-4 bg-gray-200 rounded w-20"></div>
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-20 bg-gray-200 rounded-full h-2"></div>
+                                    <div class="h-4 bg-gray-200 rounded w-6"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Actual order status -->
-                        <template x-for="status in orderStatusStats" :key="status.name" x-show="!loading">
-                            <div class="flex justify-between items-center">
+                        <template x-for="status in orderStatusStats" :key="status.name">
+                            <div class="flex justify-between items-center" x-show="!loading" x-transition>
                                 <span class="text-sm" x-text="status.name"></span>
                                 <div class="flex items-center space-x-2">
                                     <div class="w-20 bg-gray-200 rounded-full h-2">
@@ -354,21 +403,33 @@
                     <h3 class="text-lg font-semibold mb-4">Top Products</h3>
                     <div class="space-y-3">
                         <!-- Loading skeleton for products -->
-                        <div x-show="loading" class="space-y-3">
-                            <div class="animate-pulse" x-for="i in 5">
-                                <div class="flex justify-between items-center">
-                                    <div class="flex-1">
-                                        <div class="h-4 bg-gray-200 rounded w-3/4"></div>
-                                        <div class="h-3 bg-gray-200 rounded w-1/2 mt-1"></div>
-                                    </div>
-                                    <div class="h-4 bg-gray-200 rounded w-16"></div>
+                        <div x-show="loading" class="space-y-3 animate-pulse">
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                    <div class="h-4 bg-gray-200 rounded w-32"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-24 mt-1"></div>
                                 </div>
+                                <div class="h-4 bg-gray-200 rounded w-16"></div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                    <div class="h-4 bg-gray-200 rounded w-28"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-20 mt-1"></div>
+                                </div>
+                                <div class="h-4 bg-gray-200 rounded w-16"></div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                    <div class="h-4 bg-gray-200 rounded w-36"></div>
+                                    <div class="h-3 bg-gray-200 rounded w-24 mt-1"></div>
+                                </div>
+                                <div class="h-4 bg-gray-200 rounded w-16"></div>
                             </div>
                         </div>
 
                         <!-- Actual products -->
-                        <template x-for="product in topProducts" :key="product.name" x-show="!loading">
-                            <div class="flex justify-between items-center">
+                        <template x-for="product in topProducts" :key="product.name">
+                            <div class="flex justify-between items-center" x-show="!loading" x-transition>
                                 <div class="flex-1">
                                     <p class="font-medium text-sm" x-text="product.name"></p>
                                     <p class="text-xs text-gray-500" x-text="product.variant"></p>

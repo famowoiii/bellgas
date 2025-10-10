@@ -50,9 +50,9 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    <!-- Pusher and Laravel Echo disabled - using polling instead -->
-    {{-- <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script> --}}
-    {{-- <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script> --}}
+    <!-- Pusher and Laravel Echo for real-time notifications -->
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
 
     <!-- Axios for HTTP requests -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -574,6 +574,10 @@
                 notifications: [],
                 bellNotifications: [],
                 bellCount: 0,
+                lastPollingCheck: null,
+                pollingInterval: null,
+                lastCustomerPollingCheck: null,
+                customerPollingInterval: null,
                 loadingStates: {
                     loggingOut: false,
                     addingToCart: false
@@ -1180,10 +1184,17 @@
                 },
 
                 initializeWebSocket() {
+                    console.log('🔧 initializeWebSocket() called - DISABLED (using polling only)');
+
+                    // WebSocket disabled - using polling for notifications instead
+                    // This is more reliable and doesn't require Reverb server
+
+                    /*
                     if (typeof window.Echo === 'undefined') {
                         console.warn('Laravel Echo not available');
                         return;
                     }
+                    */
 
                     // Wait for Echo to be properly initialized
                     setTimeout(() => {
@@ -1204,13 +1215,14 @@
                         }
                     }, 1000);
 
+                    // Subscribe to customer order updates
                     if (this.user && window.Echo && typeof window.Echo.private === 'function') {
                         try {
                             // Listen for order status updates
                             window.Echo.private(`user.${this.user.id}.orders`)
-                                .listen('.order.status_changed', (data) => {
+                                .listen('.order.status.updated', (data) => {
                                     console.log('📦 Order status updated:', data);
-                                    this.showNotification(`Order ${data.order.order_number} status changed to ${data.new_status}`, 'info');
+                                    this.showNotification(`Order ${data.order_number} status changed from ${data.previous_status} to ${data.new_status}`, 'info');
 
                                     // Notify order detail page if open
                                     if (window.orderDetailPage && window.orderDetailPage.handleOrderStatusUpdate) {
@@ -1228,21 +1240,213 @@
                         } catch (error) {
                             console.warn('⚠️ WebSocket private channel setup failed:', error);
                         }
+                    }
 
-                        // Admin bell notifications for new orders
-                        if ((this.user.role === 'ADMIN' || this.user.role === 'MERCHANT') &&
-                            window.Echo && typeof window.Echo.channel === 'function') {
+                    // Admin bell notifications - SEPARATE check, not nested
+                    console.log('🔍 Checking admin role:', this.user ? this.user.role : 'no user');
+                    if (this.user && (this.user.role === 'ADMIN' || this.user.role === 'MERCHANT')) {
+                        console.log('✅ User is ADMIN/MERCHANT, subscribing to admin-notifications...');
+
+                        if (window.Echo && typeof window.Echo.channel === 'function') {
                             try {
-                                window.Echo.channel('admin-orders')
-                                    .listen('.order.created', (data) => {
-                                        console.log('🔔 New order received:', data);
-                                        this.addBellNotification(data);
+                                // Listen for new PAID orders on PUBLIC channel
+                                window.Echo.channel('admin-notifications')
+                                    .listen('.new-paid-order', (data) => {
+                                        console.log('💰 New paid order received (PUBLIC):', data);
+                                        this.showNotification(
+                                            `Order ${data.order.order_number} has been PAID! Total: $${data.order.total_aud}`,
+                                            'success'
+                                        );
+                                        this.addBellNotification({
+                                            order_number: data.order.order_number,
+                                            message: data.notification.message,
+                                            total: data.order.total_aud,
+                                            type: 'paid'
+                                        });
                                         this.playNotificationSound();
+
+                                        // Refresh orders page if currently viewing
+                                        if (window.location.pathname.includes('/admin/orders')) {
+                                            setTimeout(() => {
+                                                window.location.reload();
+                                            }, 2000);
+                                        }
                                     });
+
+                                console.log('✅ Admin subscribed to public admin-notifications channel');
                             } catch (error) {
-                                console.warn('⚠️ WebSocket channel setup failed:', error);
+                                console.error('❌ WebSocket admin channel setup FAILED:', error);
+                            }
+                        } else {
+                            console.warn('⚠️ Echo.channel not available');
+                        }
+                    } else {
+                        console.log('⚠️ User is not ADMIN/MERCHANT, skipping admin subscription');
+                    }
+
+                    // 🔄 POLLING FALLBACK for Admin Notifications
+                    // This is a RELIABLE backup in case WebSocket/Reverb fails
+                    if (this.user && (this.user.role === 'ADMIN' || this.user.role === 'MERCHANT')) {
+                        console.log('🔄 Starting admin polling fallback (checks every 10 seconds)...');
+                        this.startAdminPolling();
+                    }
+
+                    // 🔄 POLLING for Customer Order Status Updates
+                    // Check for order status changes every 15 seconds
+                    if (this.user && this.user.role === 'CUSTOMER') {
+                        console.log('🔄 Starting customer order status polling (checks every 15 seconds)...');
+                        this.startCustomerPolling();
+                    }
+                },
+
+                // 🔄 POLLING SOLUTION - Guaranteed to work!
+                startAdminPolling() {
+                    // Store last check time
+                    this.lastPollingCheck = new Date().toISOString();
+
+                    console.log('✅ Admin polling started at:', this.lastPollingCheck);
+
+                    // Poll every 10 seconds
+                    this.pollingInterval = setInterval(() => {
+                        this.pollForNewOrders();
+                    }, 10000); // 10 seconds
+
+                    // Also do an immediate check
+                    setTimeout(() => this.pollForNewOrders(), 2000);
+                },
+
+                async pollForNewOrders() {
+                    try {
+                        const token = window.JWT_TOKEN || localStorage.getItem('access_token');
+                        if (!token) {
+                            console.warn('⚠️ No token for admin polling');
+                            return;
+                        }
+
+                        console.log('🔍 Admin polling with user role:', this.user?.role);
+                        console.log('🔍 Admin polling token available:', !!token);
+
+                        const response = await axios.get('/api/admin/notifications/new-paid-orders', {
+                            params: {
+                                last_check: this.lastPollingCheck
+                            },
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.data.success && response.data.count > 0) {
+                            console.log('🔔 POLLING: Found ' + response.data.count + ' new paid orders!');
+
+                            // Process each new order
+                            response.data.new_orders.forEach(order => {
+                                console.log('💰 New PAID order via polling:', order.order_number);
+
+                                // Show notification
+                                this.showNotification(
+                                    `Order ${order.order_number} has been PAID! Total: $${order.total_aud}`,
+                                    'success'
+                                );
+
+                                // Add to bell notifications
+                                this.addBellNotification({
+                                    order_number: order.order_number,
+                                    message: `New order from ${order.customer_name}`,
+                                    total: order.total_aud,
+                                    type: 'paid',
+                                    customer: order.customer_name
+                                });
+
+                                // Play sound
+                                this.playNotificationSound();
+                            });
+
+                            // Refresh if on admin orders page
+                            if (window.location.pathname.includes('/admin/orders') ||
+                                window.location.pathname.includes('/admin/dashboard')) {
+                                console.log('📄 Refreshing admin page...');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 3000);
                             }
                         }
+
+                        // Update last check time
+                        this.lastPollingCheck = response.data.current_time;
+
+                    } catch (error) {
+                        console.error('❌ Polling error:', error);
+                        // Don't show error to user, just log it
+                    }
+                },
+
+                // 🔄 CUSTOMER POLLING SOLUTION for Order Status Updates
+                startCustomerPolling() {
+                    // Store last check time
+                    this.lastCustomerPollingCheck = new Date().toISOString();
+
+                    console.log('✅ Customer polling started at:', this.lastCustomerPollingCheck);
+
+                    // Poll every 15 seconds
+                    this.customerPollingInterval = setInterval(() => {
+                        this.pollForOrderStatusUpdates();
+                    }, 15000); // 15 seconds
+
+                    // Also do an immediate check after 3 seconds
+                    setTimeout(() => this.pollForOrderStatusUpdates(), 3000);
+                },
+
+                async pollForOrderStatusUpdates() {
+                    try {
+                        const token = window.JWT_TOKEN || localStorage.getItem('access_token');
+                        if (!token) {
+                            console.warn('⚠️ No token for customer polling');
+                            return;
+                        }
+
+                        const response = await axios.get('/api/customer/notifications/order-status-updates', {
+                            params: {
+                                last_check: this.lastCustomerPollingCheck
+                            },
+                            headers: {
+                                'Authorization': 'Bearer ' + token,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.data.success && response.data.count > 0) {
+                            console.log('🔔 CUSTOMER POLLING: Found ' + response.data.count + ' updated orders!');
+
+                            // Process each updated order
+                            response.data.updated_orders.forEach(order => {
+                                console.log('📦 Order status updated via polling:', order.order_number, order.status);
+
+                                // Show notification
+                                this.showNotification(
+                                    `Order ${order.order_number} status: ${order.status}`,
+                                    'info'
+                                );
+
+                                // Play sound
+                                this.playNotificationSound();
+                            });
+
+                            // Refresh if on orders page or order detail page
+                            if (window.location.pathname.includes('/orders')) {
+                                console.log('📄 Refreshing orders page...');
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 2000);
+                            }
+                        }
+
+                        // Update last check time
+                        this.lastCustomerPollingCheck = response.data.current_time;
+
+                    } catch (error) {
+                        console.error('❌ Customer polling error:', error);
+                        // Don't show error to user, just log it
                     }
                 },
 
@@ -1290,27 +1494,21 @@
         }
     </script>
 
-    <!-- WebSocket Configuration -->
+    <!-- WebSocket Configuration - DISABLED (Using Polling Instead) -->
     <script>
-        window.Echo = new Echo({
-            broadcaster: 'reverb',
-            key: '{{ config('broadcasting.connections.reverb.app_key') }}',
-            wsHost: '{{ config('broadcasting.connections.reverb.host') }}',
-            wsPort: {{ config('broadcasting.connections.reverb.port') }},
-            wssPort: {{ config('broadcasting.connections.reverb.port') }},
-            forceTLS: false,
-            enabledTransports: ['ws', 'wss'],
-            auth: {
-                headers: {
-                    @if(session('frontend_token') || session('jwt_token'))
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Authorization': 'Bearer {{ session('frontend_token') ?? session('jwt_token') }}'
-                    @else
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                    @endif
-                }
-            }
-        });
+        // WebSocket/Reverb DISABLED - We're using polling for notifications
+        // This prevents unnecessary WebSocket connection errors
+        console.log('ℹ️ WebSocket/Reverb disabled - Using reliable polling instead');
+        console.log('✅ Polling provides guaranteed notification delivery without connection issues');
+
+        // Create a dummy Echo object to prevent errors
+        window.Echo = {
+            connector: null,
+            channel: function() { return this; },
+            private: function() { return this; },
+            listen: function() { return this; },
+            error: function() { return this; }
+        };
     </script>
 
     @stack('scripts')

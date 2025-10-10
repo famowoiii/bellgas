@@ -17,6 +17,7 @@ use App\Services\OrderStatusService;
 use App\Events\OrderUpdated;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -35,7 +36,20 @@ class OrderController extends Controller
     {
         $user = Auth::user();
 
-        $query = Order::with(['items.productVariant.product', 'address', 'user'])
+        // Optimized: Select only needed columns and eager load with specific columns
+        $query = Order::select('id', 'order_number', 'user_id', 'address_id', 'status', 'fulfillment_method',
+                               'total_aud', 'created_at', 'updated_at')
+            ->with([
+                'user:id,first_name,last_name,email',
+                'address:id,name,street_address,suburb,state,postcode',
+                'items' => function($query) {
+                    $query->select('id', 'order_id', 'product_variant_id', 'quantity', 'unit_price_aud', 'total_price_aud')
+                          ->with(['productVariant' => function($q) {
+                              $q->select('id', 'product_id', 'name', 'price_aud')
+                                ->with('product:id,name,category');
+                          }]);
+                }
+            ])
             ->orderBy('created_at', 'desc');
 
         // If user is customer, only show their orders
@@ -283,7 +297,21 @@ class OrderController extends Controller
             // Only load minimal data needed for response first
             $order->load(['user:id,first_name,last_name,email', 'items:id,order_id,quantity,total_price_aud']);
 
-            // Broadcasting disabled - using polling for real-time updates
+            // Clear order stats cache when order status changes
+            Cache::forget('admin_order_stats');
+
+            // Broadcast order status change notification
+            try {
+                event(new \App\Events\OrderStatusUpdated($order, $oldStatus, $newStatus));
+                \Log::info('Order status broadcast sent', [
+                    'order_number' => $order->order_number,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus
+                ]);
+            } catch (\Exception $e) {
+                // Log error but don't fail the request
+                \Log::error('Failed to broadcast order status update: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -421,26 +449,41 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $stats = [
-            'total' => Order::count(),
-            'pending' => Order::where('status', 'PENDING')->count(),
-            'paid' => Order::where('status', 'PAID')->count(),
-            'processed' => Order::where('status', 'PROCESSED')->count(),
-            'waiting_pickup' => Order::where('status', 'WAITING_FOR_PICKUP')->count(),
-            'picked_up' => Order::where('status', 'PICKED_UP')->count(),
-            'on_delivery' => Order::where('status', 'ON_DELIVERY')->count(),
-            'done' => Order::where('status', 'DONE')->count(),
-            'cancelled' => Order::where('status', 'CANCELLED')->count(),
-            'total_revenue' => Order::whereIn('status', ['DONE', 'PAID', 'PROCESSED', 'WAITING_FOR_PICKUP', 'PICKED_UP', 'ON_DELIVERY'])
-                ->sum('total_aud'),
-            'today_orders' => Order::whereDate('created_at', today())->count(),
-            'this_month_orders' => Order::whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)
-                ->count(),
-        ];
+        // Cache stats for 5 minutes to reduce database queries
+        $stats = Cache::remember('admin_order_stats', 300, function() {
+            return [
+                'total' => Order::count(),
+                'pending' => Order::where('status', 'PENDING')->count(),
+                'paid' => Order::where('status', 'PAID')->count(),
+                'processed' => Order::where('status', 'PROCESSED')->count(),
+                'waiting_pickup' => Order::where('status', 'WAITING_FOR_PICKUP')->count(),
+                'picked_up' => Order::where('status', 'PICKED_UP')->count(),
+                'on_delivery' => Order::where('status', 'ON_DELIVERY')->count(),
+                'done' => Order::where('status', 'DONE')->count(),
+                'cancelled' => Order::where('status', 'CANCELLED')->count(),
+                'total_revenue' => Order::whereIn('status', ['DONE', 'PAID', 'PROCESSED', 'WAITING_FOR_PICKUP', 'PICKED_UP', 'ON_DELIVERY'])
+                    ->sum('total_aud'),
+                'today_orders' => Order::whereDate('created_at', today())->count(),
+                'this_month_orders' => Order::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->count(),
+            ];
+        });
 
-        // Get all orders with relationships for admin
-        $orders = Order::with(['items.productVariant.product', 'address', 'user'])
+        // Get all orders with relationships for admin - optimized
+        $orders = Order::select('id', 'order_number', 'user_id', 'address_id', 'status', 'fulfillment_method',
+                               'total_aud', 'created_at', 'updated_at')
+            ->with([
+                'user:id,first_name,last_name,email',
+                'address:id,name,street_address,suburb,state,postcode',
+                'items' => function($query) {
+                    $query->select('id', 'order_id', 'product_variant_id', 'quantity', 'unit_price_aud', 'total_price_aud')
+                          ->with(['productVariant' => function($q) {
+                              $q->select('id', 'product_id', 'name', 'price_aud')
+                                ->with('product:id,name,category');
+                          }]);
+                }
+            ])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($order) {
@@ -499,7 +542,19 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $orders = Order::with(['user', 'items.productVariant.product', 'address'])
+        $orders = Order::select('id', 'order_number', 'user_id', 'address_id', 'status', 'fulfillment_method',
+                               'total_aud', 'created_at', 'updated_at')
+            ->with([
+                'user:id,first_name,last_name,email',
+                'address:id,name,street_address,suburb,state,postcode',
+                'items' => function($query) {
+                    $query->select('id', 'order_id', 'product_variant_id', 'quantity', 'unit_price_aud', 'total_price_aud')
+                          ->with(['productVariant' => function($q) {
+                              $q->select('id', 'product_id', 'name', 'price_aud')
+                                ->with('product:id,name,category');
+                          }]);
+                }
+            ])
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get()
@@ -663,8 +718,22 @@ class OrderController extends Controller
             ]);
         }
 
-        // Load order with relationships
-        $order->load(['items.productVariant.product.photos', 'address', 'events', 'user']);
+        // Load order with relationships - optimized
+        $order->load([
+            'user:id,first_name,last_name,email',
+            'address:id,name,street_address,suburb,state,postcode',
+            'items' => function($query) {
+                $query->select('id', 'order_id', 'product_variant_id', 'quantity', 'unit_price_aud', 'total_price_aud')
+                      ->with(['productVariant' => function($q) {
+                          $q->select('id', 'product_id', 'name', 'price_aud')
+                            ->with(['product' => function($p) {
+                                $p->select('id', 'name', 'category')
+                                  ->with('photos:id,product_id,filename');
+                            }]);
+                      }]);
+            },
+            'events:id,order_id,event_type,description,created_at'
+        ]);
 
         // Refresh the order to get latest status
         $order->refresh();
@@ -692,7 +761,19 @@ class OrderController extends Controller
 
         try {
             $since = $request->get('since');
-            $query = Order::with(['items.productVariant.product', 'address', 'user'])
+            $query = Order::select('id', 'order_number', 'user_id', 'address_id', 'status', 'fulfillment_method',
+                                   'total_aud', 'created_at', 'updated_at')
+                ->with([
+                    'user:id,first_name,last_name,email',
+                    'address:id,name,street_address,suburb,state,postcode',
+                    'items' => function($query) {
+                        $query->select('id', 'order_id', 'product_variant_id', 'quantity', 'unit_price_aud', 'total_price_aud')
+                              ->with(['productVariant' => function($q) {
+                                  $q->select('id', 'product_id', 'name', 'price_aud')
+                                    ->with('product:id,name,category');
+                              }]);
+                    }
+                ])
                 ->orderBy('updated_at', 'desc');
 
             // Filter orders updated since given timestamp

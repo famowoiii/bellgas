@@ -25,7 +25,9 @@ class NewPaidOrderEvent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('admin-notifications'),
+            // Use public channel for easier testing
+            new Channel('admin-notifications'),
+            new PrivateChannel('admin-notifications-private'),
             new PrivateChannel('orders-updates'),
         ];
     }

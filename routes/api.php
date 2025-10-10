@@ -288,6 +288,17 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::get('customer-orders', [\App\Http\Controllers\Api\RealtimeController::class, 'getCustomerOrderUpdates']);
         Route::get('admin-stats', [\App\Http\Controllers\Api\RealtimeController::class, 'getAdminStats']);
     });
+
+    // Admin notification polling (fallback when WebSocket doesn't work)
+    Route::prefix('admin/notifications')->group(function () {
+        Route::get('new-paid-orders', [\App\Http\Controllers\Api\AdminNotificationController::class, 'getNewPaidOrders']);
+        Route::get('count', [\App\Http\Controllers\Api\AdminNotificationController::class, 'getNotificationCount']);
+    });
+
+    // Customer notification polling (fallback when WebSocket doesn't work)
+    Route::prefix('customer/notifications')->group(function () {
+        Route::get('order-status-updates', [\App\Http\Controllers\Api\CustomerNotificationController::class, 'getOrderStatusUpdates']);
+    });
 });
 
 // API Documentation
