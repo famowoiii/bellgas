@@ -365,7 +365,16 @@ function simpleProductsApp() {
 
                     // Try to update global cart if available
                     if (window.app && window.app.loadCart) {
+                        console.log('📦 Reloading global cart...');
                         await window.app.loadCart(true);
+                        console.log('✅ Cart reloaded. New count:', window.app.cartCount);
+
+                        // Force Alpine reactivity update
+                        window.app.$nextTick(() => {
+                            console.log('🔄 Alpine reactivity updated. Cart count:', window.app.cartCount);
+                        });
+                    } else {
+                        console.warn('⚠️ window.app.loadCart not available');
                     }
                 } else {
                     throw new Error(response.data.message || 'Failed to add to cart');

@@ -70,11 +70,12 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
                                    'border-blue-500 bg-blue-50': form.fulfillment_method === 'DELIVERY' && canDeliverAllItems,
                                    'border-gray-300 hover:border-gray-400 cursor-pointer': canDeliverAllItems,
                                    'border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed': !canDeliverAllItems
-                               }">
-                            <input x-model="form.fulfillment_method" 
-                                   type="radio" 
-                                   value="DELIVERY" 
-                                   class="sr-only" 
+                               }"
+                               @click="if (canDeliverAllItems && form.fulfillment_method !== 'DELIVERY' && addresses.length === 0 && !addressesLoading) { loadAddresses(); }">
+                            <input x-model="form.fulfillment_method"
+                                   type="radio"
+                                   value="DELIVERY"
+                                   class="sr-only"
                                    :disabled="!canDeliverAllItems">
                             <div class="flex-1">
                                 <div class="flex items-center justify-center mb-2">
@@ -910,46 +911,53 @@ function checkoutPage() {
 
         async loadAddresses() {
             console.log('🏠 Loading delivery addresses...');
+
+            // Set loading state IMMEDIATELY to show spinner right away
             this.addressesLoading = true;
             this.addressesError = null;
+
+            // Check cache first (valid for 60 seconds)
+            const cachedAddresses = sessionStorage.getItem('cached_addresses');
+            const cacheTime = sessionStorage.getItem('addresses_cache_time');
+            if (cachedAddresses && cacheTime) {
+                const age = Date.now() - parseInt(cacheTime);
+                if (age < 60000) { // 60 seconds cache
+                    console.log('✅ Using cached addresses (age: ' + Math.round(age/1000) + 's)');
+                    this.addresses = JSON.parse(cachedAddresses);
+                    if (this.addresses.length > 0 && !this.form.address_id) {
+                        this.form.address_id = this.addresses[0].id;
+                    }
+                    this.addressesLoading = false; // Stop loading since we used cache
+                    return;
+                }
+            }
 
             try {
                 const startTime = Date.now();
 
-                // Try web route first (session-based)
-                let response;
-                try {
-                    response = await axios.get('/web/addresses', {
-                        timeout: 5000, // 5 second timeout
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                } catch (webError) {
-                    console.warn('⚠️ Web addresses failed, trying API route:', webError.message);
-
-                    // Fallback to API route with JWT
-                    const token = localStorage.getItem('access_token') || localStorage.getItem('jwt_token');
-                    if (token) {
-                        response = await axios.get('/api/addresses', {
-                            timeout: 5000,
-                            headers: {
-                                'Accept': 'application/json',
-                                'Authorization': 'Bearer ' + token
-                            }
-                        });
-                    } else {
-                        throw webError; // Re-throw original error if no token
-                    }
+                // Use JWT token directly (faster, no fallback needed)
+                const token = window.JWT_TOKEN || localStorage.getItem('access_token');
+                if (!token) {
+                    throw new Error('Please login to view addresses');
                 }
+
+                const response = await axios.get('/api/addresses', {
+                    timeout: 3000, // Reduced to 3 seconds
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
 
                 const loadTime = Date.now() - startTime;
                 console.log(`✅ Addresses loaded in ${loadTime}ms`);
 
                 this.addresses = response.data.data || [];
                 console.log(`📍 Found ${this.addresses.length} saved addresses`);
+
+                // Cache the addresses
+                sessionStorage.setItem('cached_addresses', JSON.stringify(this.addresses));
+                sessionStorage.setItem('addresses_cache_time', Date.now().toString());
 
                 // Auto-select first address if none selected
                 if (this.addresses.length > 0 && !this.form.address_id) {

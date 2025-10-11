@@ -275,6 +275,15 @@
                 <a href="/about" class="block py-2 text-gray-600 hover:text-primary">About</a>
                 <a href="/contact" class="block py-2 text-gray-600 hover:text-primary">Contact</a>
 
+                <!-- Mobile Cart Button -->
+                <button @click="toggleCart(); mobileMenuOpen = false" class="w-full flex items-center justify-between py-2 text-gray-600 hover:text-primary border-t pt-2">
+                    <span class="flex items-center">
+                        <i class="fas fa-shopping-cart mr-2"></i> Shopping Cart
+                    </span>
+                    <span x-show="cartCount > 0" x-text="cartCount"
+                          class="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center"></span>
+                </button>
+
                 <div x-show="!user" class="border-t pt-2">
                     <a href="/login" class="block py-2 text-gray-600 hover:text-primary">Login</a>
                     <a href="/register" class="block py-2 text-primary font-medium">Sign Up</a>
