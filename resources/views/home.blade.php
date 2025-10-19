@@ -3,7 +3,7 @@
 @section('title', 'BellGas - Premium LPG Services')
 
 @section('content')
-<div x-data="homeData()" x-init="loadProducts()">
+<div>
     <!-- Hero Section -->
     <section class="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white overflow-hidden">
         <div class="absolute inset-0 bg-black opacity-20"></div>
@@ -16,18 +16,18 @@
                     Reliable, safe, and convenient LPG delivery and refill services across Sydney
                 </p>
                 <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <a href="/products" 
+                    <a href="/products"
                        class="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg text-lg font-semibold transition transform hover:scale-105">
                         <i class="fas fa-shopping-cart mr-2"></i>Shop Now
                     </a>
-                    <a href="/about" 
+                    <a href="/about"
                        class="border-2 border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3 rounded-lg text-lg font-semibold transition">
                         Learn More
                     </a>
                 </div>
             </div>
         </div>
-        
+
         <!-- Floating Elements -->
         <div class="absolute top-20 left-10 w-20 h-20 bg-orange-400 rounded-full opacity-20 animate-bounce"></div>
         <div class="absolute bottom-20 right-10 w-16 h-16 bg-blue-300 rounded-full opacity-30 animate-pulse"></div>
@@ -43,7 +43,7 @@
                     We provide safe, reliable, and convenient LPG services with a commitment to excellence
                 </p>
             </div>
-            
+
             <div class="grid md:grid-cols-3 gap-8">
                 <div class="text-center p-6 rounded-xl hover:shadow-lg transition transform hover:scale-105">
                     <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -52,7 +52,7 @@
                     <h3 class="text-xl font-semibold mb-3">Fast Delivery</h3>
                     <p class="text-gray-600">Quick and reliable delivery across Sydney metro area. Same-day delivery available for urgent needs.</p>
                 </div>
-                
+
                 <div class="text-center p-6 rounded-xl hover:shadow-lg transition transform hover:scale-105">
                     <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-shield-alt text-2xl text-green-600"></i>
@@ -60,7 +60,7 @@
                     <h3 class="text-xl font-semibold mb-3">Safety First</h3>
                     <p class="text-gray-600">All our cylinders are regularly inspected and certified. We follow strict safety protocols for your peace of mind.</p>
                 </div>
-                
+
                 <div class="text-center p-6 rounded-xl hover:shadow-lg transition transform hover:scale-105">
                     <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-dollar-sign text-2xl text-orange-600"></i>
@@ -72,52 +72,110 @@
         </div>
     </section>
 
-    <!-- Products Preview -->
+    <!-- Product Categories Section (Static) -->
     <section class="py-16 bg-gray-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
-                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Our Products</h2>
-                <p class="text-xl text-gray-600">Quality LPG cylinders for home and business use</p>
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Our Product Range</h2>
+                <p class="text-xl text-gray-600">Browse our complete selection of LPG products and services</p>
             </div>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <template x-for="product in featuredProducts" :key="product.id">
-                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition transform hover:scale-105 overflow-hidden">
-                        <div class="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
-                            <i class="fas fa-fire text-6xl text-white opacity-80"></i>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-semibold mb-2" x-text="product.name"></h3>
-                            <p class="text-gray-600 mb-4 text-sm" x-text="product.description"></p>
-                            
-                            <template x-for="variant in product.variants?.slice(0, 2)" :key="`product-${product.id}-variant-${variant.id}`">
-                                <div class="flex justify-between items-center mb-2 p-2 bg-gray-50 rounded">
-                                    <span class="text-sm font-medium" x-text="variant.name"></span>
-                                    <div class="text-right">
-                                        <span class="text-lg font-bold text-blue-600">$<span x-text="variant.price_aud"></span></span>
-                                        <button @click="$parent.addToCart(variant.id)" 
-                                            class="ml-2 bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700 transition">
-                                            Add to Cart
-                                        </button>
-                                    </div>
-                                </div>
-                            </template>
-                            
-                            <div class="mt-4 pt-4 border-t">
-                                <a :href="'/products/' + product.slug" 
-                                   class="text-blue-600 hover:text-blue-800 font-medium text-sm">
-                                    View Details <i class="fas fa-arrow-right ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <!-- Full Tank Category -->
+                <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition transform hover:scale-105 overflow-hidden">
+                    <div class="h-48 bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                        <i class="fas fa-fire text-6xl text-white opacity-80"></i>
                     </div>
-                </template>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-3 text-gray-800">Full Tank Cylinders</h3>
+                        <p class="text-gray-600 mb-4">
+                            Complete LPG gas cylinders with full tank. Perfect for new setups or replacements.
+                        </p>
+                        <ul class="space-y-2 mb-6 text-sm text-gray-700">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Various sizes available
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Safety certified
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Delivery or pickup options
+                            </li>
+                        </ul>
+                        <a href="/products" class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center px-4 py-3 rounded-lg font-semibold transition">
+                            Browse Full Tanks
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Refill Service Category -->
+                <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition transform hover:scale-105 overflow-hidden">
+                    <div class="h-48 bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
+                        <i class="fas fa-sync-alt text-6xl text-white opacity-80"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-3 text-gray-800">Refill Services</h3>
+                        <p class="text-gray-600 mb-4">
+                            Quick and convenient refill service for your existing LPG cylinders.
+                        </p>
+                        <ul class="space-y-2 mb-6 text-sm text-gray-700">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Fast turnaround time
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Competitive pricing
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                All cylinder sizes
+                            </li>
+                        </ul>
+                        <a href="/products" class="block w-full bg-green-600 hover:bg-green-700 text-white text-center px-4 py-3 rounded-lg font-semibold transition">
+                            Browse Refills
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Portable Category -->
+                <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition transform hover:scale-105 overflow-hidden">
+                    <div class="h-48 bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center">
+                        <i class="fas fa-campground text-6xl text-white opacity-80"></i>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="text-2xl font-bold mb-3 text-gray-800">Portable Canisters</h3>
+                        <p class="text-gray-600 mb-4">
+                            Compact and portable LPG solutions for camping, outdoor activities, and emergencies.
+                        </p>
+                        <ul class="space-y-2 mb-6 text-sm text-gray-700">
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Lightweight & portable
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Perfect for camping
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                                Easy to store
+                            </li>
+                        </ul>
+                        <a href="/products" class="block w-full bg-orange-600 hover:bg-orange-700 text-white text-center px-4 py-3 rounded-lg font-semibold transition">
+                            Browse Portable
+                        </a>
+                    </div>
+                </div>
             </div>
-            
+
             <div class="text-center mt-12">
-                <a href="/products" 
-                   class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition transform hover:scale-105">
-                    View All Products
+                <a href="/products"
+                   class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg text-lg font-semibold transition transform hover:scale-105 inline-block">
+                    <i class="fas fa-shopping-cart mr-2"></i>View All Products
                 </a>
             </div>
         </div>
@@ -189,21 +247,4 @@
         </div>
     </section>
 </div>
-
-<script>
-function homeData() {
-    return {
-        featuredProducts: [],
-        
-        async loadProducts() {
-            try {
-                const response = await axios.get('/api/products?limit=3');
-                this.featuredProducts = response.data.data.slice(0, 3);
-            } catch (error) {
-                console.error('Failed to load products:', error);
-            }
-        }
-    }
-}
-</script>
 @endsection
