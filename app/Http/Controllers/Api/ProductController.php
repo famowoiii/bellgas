@@ -153,6 +153,14 @@ class ProductController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048'
         ]);
 
+        // Map category_id to category string for backward compatibility
+        $categoryString = 'REFILL'; // default
+        if (isset($validated['category_id'])) {
+            $categoryString = $validated['category_id'] == 1 ? 'REFILL' : 'FULL_TANK';
+        } elseif (isset($validated['category'])) {
+            $categoryString = $validated['category'];
+        }
+
         // Handle image upload
         $imagePath = null;
         if ($request->hasFile('image')) {
@@ -167,7 +175,7 @@ class ProductController extends Controller
             'description' => $validated['description'],
             'weight_kg' => $validated['weight'] ?? 0,
             'category_id' => $validated['category_id'] ?? null,
-            'category' => $validated['category'] ?? 'REFILL',
+            'category' => $categoryString,
             'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : true,
             'image_url' => $imagePath,
         ]);
@@ -247,13 +255,21 @@ class ProductController extends Controller
             ], 422);
         }
 
+        // Map category_id to category string for backward compatibility
+        $categoryString = $product->category; // default to existing
+        if (isset($validated['category_id'])) {
+            $categoryString = $validated['category_id'] == 1 ? 'REFILL' : 'FULL_TANK';
+        } elseif (isset($validated['category'])) {
+            $categoryString = $validated['category'];
+        }
+
         // Handle image upload
         $updateData = [
             'name' => $validated['name'],
             'description' => $validated['description'],
             'weight_kg' => $validated['weight'] ?? $product->weight_kg,
             'category_id' => $validated['category_id'] ?? $product->category_id,
-            'category' => $validated['category'] ?? $product->category,
+            'category' => $categoryString,
             'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : $product->is_active,
         ];
 
