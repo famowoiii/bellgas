@@ -335,7 +335,7 @@ Route::get('/debug-customer-login', function () {
 
 // Quick login routes for testing
 Route::get('/quick-login/admin', function () {
-    $user = \App\Models\User::where('email', 'admin@bellgas.com.au')->first();
+    $user = \App\Models\User::where('email', 'admin@bellgas.com')->first();
     if ($user) {
         \Illuminate\Support\Facades\Auth::login($user);
 
