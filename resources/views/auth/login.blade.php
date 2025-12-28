@@ -137,31 +137,6 @@
                 </div>
             </div>
         </form>
-
-        <!-- Demo Credentials -->
-        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
-            <h4 class="text-sm font-medium text-blue-800 mb-2">Demo Credentials</h4>
-            <div class="grid grid-cols-1 gap-2 text-xs">
-                <div>
-                    <strong class="text-blue-700">Customer:</strong> 
-                    <span class="ml-1 text-blue-600">stripetester@bellgas.com / password123</span>
-                </div>
-                <div>
-                    <strong class="text-blue-700">Admin:</strong> 
-                    <span class="ml-1 text-blue-600">admin@bellgas.com.au / password</span>
-                </div>
-            </div>
-            <div class="mt-2">
-                <button @click="fillDemoCredentials('customer')" 
-                        class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded mr-2 hover:bg-blue-200 transition">
-                    Fill Customer
-                </button>
-                <button @click="fillDemoCredentials('admin')" 
-                        class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 transition">
-                    Fill Admin
-                </button>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -175,17 +150,7 @@ function loginForm() {
         },
         errors: {},
         generalError: '',
-        showPassword: false,
-
-        fillDemoCredentials(type) {
-            if (type === 'customer') {
-                this.form.email = 'stripetester@bellgas.com';
-                this.form.password = 'password123';
-            } else if (type === 'admin') {
-                this.form.email = 'admin@bellgas.com.au';
-                this.form.password = 'password';
-            }
-        }
+        showPassword: false
     }
 }
 </script>
