@@ -13,7 +13,7 @@ class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, HasRoles;
 
-    protected $connection = 'mysql';
+    protected $connection = 'sqlite';
 
     protected $fillable = [
         'email',

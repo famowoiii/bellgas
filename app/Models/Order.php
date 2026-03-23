@@ -13,7 +13,7 @@ class Order extends Model
 {
     use HasFactory;
 
-    protected $connection = 'mysql';
+    protected $connection = 'sqlite';
 
     protected $fillable = [
         'order_number',

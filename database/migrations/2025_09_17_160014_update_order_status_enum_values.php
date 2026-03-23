@@ -12,11 +12,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First update any existing WAITING_PICKUP records to WAITING_FOR_PICKUP
+        // Update any existing WAITING_PICKUP records to WAITING_FOR_PICKUP
         DB::statement("UPDATE orders SET status = 'WAITING_FOR_PICKUP' WHERE status = 'WAITING_PICKUP'");
-
-        // Then alter the enum to include the new value and remove the old one
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING', 'PAID', 'PROCESSED', 'WAITING_FOR_PICKUP', 'PICKED_UP', 'ON_DELIVERY', 'DONE', 'CANCELLED') NOT NULL DEFAULT 'PENDING'");
+        // SQLite does not support MODIFY COLUMN / ENUM — skip ALTER for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING', 'PAID', 'PROCESSED', 'WAITING_FOR_PICKUP', 'PICKED_UP', 'ON_DELIVERY', 'DONE', 'CANCELLED') NOT NULL DEFAULT 'PENDING'");
+        }
     }
 
     /**
@@ -24,10 +25,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // First update any existing WAITING_FOR_PICKUP records back to WAITING_PICKUP
         DB::statement("UPDATE orders SET status = 'WAITING_PICKUP' WHERE status = 'WAITING_FOR_PICKUP'");
-
-        // Then alter the enum back to the original values
-        DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING', 'PAID', 'PROCESSED', 'WAITING_PICKUP', 'PICKED_UP', 'ON_DELIVERY', 'DONE', 'CANCELLED') NOT NULL DEFAULT 'PENDING'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE orders MODIFY COLUMN status ENUM('PENDING', 'PAID', 'PROCESSED', 'WAITING_PICKUP', 'PICKED_UP', 'ON_DELIVERY', 'DONE', 'CANCELLED') NOT NULL DEFAULT 'PENDING'");
+        }
     }
 };

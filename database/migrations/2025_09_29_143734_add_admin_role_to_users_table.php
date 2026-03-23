@@ -12,8 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Modify the existing enum to include ADMIN
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('CUSTOMER', 'MERCHANT', 'ADMIN') DEFAULT 'CUSTOMER'");
+        // SQLite does not support MODIFY COLUMN / ENUM — skip ALTER for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('CUSTOMER', 'MERCHANT', 'ADMIN') DEFAULT 'CUSTOMER'");
+        }
     }
 
     /**
@@ -21,7 +23,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Revert back to original enum (this will fail if there are ADMIN users)
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('CUSTOMER', 'MERCHANT') DEFAULT 'CUSTOMER'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('CUSTOMER', 'MERCHANT') DEFAULT 'CUSTOMER'");
+        }
     }
 };

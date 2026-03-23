@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->string('phone_number')->nullable();
-            $table->enum('role', ['CUSTOMER', 'MERCHANT'])->default('CUSTOMER');
+            $table->enum('role', ['CUSTOMER', 'MERCHANT', 'ADMIN'])->default('CUSTOMER');
             $table->boolean('is_active')->default(true);
             $table->rememberToken();
             $table->timestamps();
