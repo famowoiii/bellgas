@@ -16,17 +16,20 @@ return new class extends Migration
         DB::statement("UPDATE orders SET status = 'PENDING' WHERE status = 'UNPAID'");
         DB::statement("UPDATE orders SET status = 'PROCESSED' WHERE status = 'PROCESSING'");
         DB::statement("UPDATE orders SET status = 'DONE' WHERE status IN ('READY', 'COMPLETED', 'DELIVERED')");
-        
-        Schema::table('orders', function (Blueprint $table) {
-            // Update the enum to include new status values
-            $table->enum('status', [
-                'PENDING',
-                'PAID', 
-                'PROCESSED',
-                'DONE',
-                'CANCELLED'
-            ])->default('PENDING')->change();
-        });
+
+        // SQLite does not support MODIFY COLUMN / ENUM — skip ALTER for SQLite
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('orders', function (Blueprint $table) {
+                // Update the enum to include new status values
+                $table->enum('status', [
+                    'PENDING',
+                    'PAID',
+                    'PROCESSED',
+                    'DONE',
+                    'CANCELLED'
+                ])->default('PENDING')->change();
+            });
+        }
     }
 
     /**
@@ -34,16 +37,18 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            // Revert to original enum values
-            $table->enum('status', [
-                'UNPAID', 
-                'PAID', 
-                'PROCESSING', 
-                'READY', 
-                'COMPLETED', 
-                'CANCELLED'
-            ])->default('UNPAID')->change();
-        });
+        if (DB::getDriverName() !== 'sqlite') {
+            Schema::table('orders', function (Blueprint $table) {
+                // Revert to original enum values
+                $table->enum('status', [
+                    'UNPAID',
+                    'PAID',
+                    'PROCESSING',
+                    'READY',
+                    'COMPLETED',
+                    'CANCELLED'
+                ])->default('UNPAID')->change();
+            });
+        }
     }
 };

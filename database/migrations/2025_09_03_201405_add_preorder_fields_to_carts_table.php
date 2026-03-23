@@ -28,8 +28,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('carts', function (Blueprint $table) {
-            $table->dropColumn(['is_preorder', 'reserved_until', 'notes', 'original_price']);
             $table->dropIndex(['user_id', 'product_variant_id', 'is_preorder']);
+            $table->dropColumn(['is_preorder', 'reserved_until', 'notes', 'original_price']);
         });
     }
 };
