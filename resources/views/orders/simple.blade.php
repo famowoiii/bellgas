@@ -67,15 +67,17 @@
                                 Click to view details
                             </div>
                             <div class="flex space-x-2">
-                                <span x-show="order.status === 'UNPAID'" 
-                                      class="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-green-100 text-green-800">
-                                    <i class="fas fa-credit-card mr-1"></i>
-                                    Ready to Pay
-                                </span>
-                                <span x-show="order.status === 'PAID'" 
+                                <!-- Pay Now button for PENDING (unpaid) orders -->
+                                <button x-show="order.status === 'PENDING'"
+                                        @click.stop="payOrder(order)"
+                                        class="inline-flex items-center px-4 py-2 rounded-lg text-sm font-semibold bg-green-600 text-white hover:bg-green-700 transition shadow-sm">
+                                    <i class="fas fa-credit-card mr-2"></i>
+                                    Bayar Sekarang
+                                </button>
+                                <span x-show="order.status === 'PAID'"
                                       class="inline-flex items-center px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                     <i class="fas fa-check mr-1"></i>
-                                    Paid
+                                    Lunas
                                 </span>
                             </div>
                         </div>
@@ -161,11 +163,13 @@ function simpleOrdersPage() {
         
         getStatusColor(status) {
             const colors = {
-                'UNPAID': 'bg-red-100 text-red-800',
+                'PENDING': 'bg-orange-100 text-orange-800',
                 'PAID': 'bg-blue-100 text-blue-800',
-                'PROCESSING': 'bg-yellow-100 text-yellow-800',
-                'SHIPPED': 'bg-purple-100 text-purple-800',
-                'DELIVERED': 'bg-green-100 text-green-800',
+                'PROCESSED': 'bg-yellow-100 text-yellow-800',
+                'WAITING_FOR_PICKUP': 'bg-purple-100 text-purple-800',
+                'PICKED_UP': 'bg-indigo-100 text-indigo-800',
+                'ON_DELIVERY': 'bg-purple-100 text-purple-800',
+                'DONE': 'bg-green-100 text-green-800',
                 'CANCELLED': 'bg-gray-100 text-gray-800'
             };
             return colors[status] || 'bg-gray-100 text-gray-800';
@@ -186,19 +190,15 @@ function simpleOrdersPage() {
         
         viewOrder(order) {
             console.log('🔍 Viewing order:', order.order_number, 'Status:', order.status);
-            
-            if (order.status === 'UNPAID') {
-                // For unpaid orders, redirect to checkout/payment page
-                console.log('💳 Redirecting to payment for unpaid order');
-                if (window.app && window.app.showNotification) {
-                    window.app.showNotification('Redirecting to payment...', 'info');
-                }
-                window.location.href = `/checkout?order=${order.order_number}`;
-            } else {
-                // For other orders, redirect to order details page
-                console.log('📄 Redirecting to order details');
-                window.location.href = `/orders/${order.order_number}`;
+            window.location.href = `/orders/${order.order_number}`;
+        },
+
+        payOrder(order) {
+            console.log('💳 Pay order:', order.order_number);
+            if (window.app && window.app.showNotification) {
+                window.app.showNotification('Mengarahkan ke halaman pembayaran...', 'info');
             }
+            window.location.href = `/checkout?order=${order.order_number}`;
         }
     }
 }

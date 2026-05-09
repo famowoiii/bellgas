@@ -29,8 +29,9 @@ export class HomePage {
   }
 
   async navigateToCart() {
-    await this.page.click(this.cartLink);
-    await this.page.waitForURL('**/cart**');
+    // Cart in nav is a sidebar button, navigate directly to /cart page
+    await this.page.goto('/cart');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async navigateToLogin() {

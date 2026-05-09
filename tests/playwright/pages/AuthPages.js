@@ -55,39 +55,54 @@ export class LoginPage {
 export class RegisterPage {
   constructor(page) {
     this.page = page;
-    
+
     // Selectors
-    this.nameInput = 'input[name="name"]';
+    this.firstNameInput = 'input[name="first_name"]';
+    this.lastNameInput = 'input[name="last_name"]';
+    this.phoneInput = 'input[name="phone_number"]';
     this.emailInput = 'input[name="email"], input[type="email"]';
-    this.passwordInput = 'input[name="password"]:first-of-type, input[type="password"]:first-of-type';
-    this.confirmPasswordInput = 'input[name="password_confirmation"], input[name="confirm_password"], input[type="password"]:last-of-type';
-    this.registerButton = 'button[type="submit"], button:has-text("Register"), button:has-text("Sign Up")';
+    this.passwordInput = 'input[name="password"]';
+    this.confirmPasswordInput = 'input[name="password_confirmation"]';
+    this.registerButton = 'button[type="submit"]';
     this.loginLink = 'a:has-text("Login"), a:has-text("Sign In"), a[href*="login"]';
-    this.termsCheckbox = 'input[type="checkbox"], input[name*="terms"]';
-    this.errorMessage = '.error, .alert-danger, [data-testid="error"]';
+    this.termsCheckbox = 'input[name="agree_terms"]';
+    this.errorMessage = '[x-show="generalError"], .error, .alert-danger, [data-testid="error"]';
   }
 
   async goto() {
     await this.page.goto('/register');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async register(userData) {
-    const { name, email, password, confirmPassword = password, acceptTerms = true } = userData;
-    
-    await this.page.fill(this.nameInput, name);
+    const { name, first_name, last_name, email, password, confirmPassword = password, phone = '+61400000000', acceptTerms = true } = userData;
+
+    // Support both name (split) and first_name/last_name
+    const firstName = first_name || (name ? name.split(' ')[0] : 'Test');
+    const lastName = last_name || (name ? name.split(' ').slice(1).join(' ') || 'User' : 'User');
+
+    await this.page.fill(this.firstNameInput, firstName);
+    await this.page.fill(this.lastNameInput, lastName);
     await this.page.fill(this.emailInput, email);
+
+    if (await this.page.locator(this.phoneInput).count() > 0) {
+      await this.page.fill(this.phoneInput, phone);
+    }
+
     await this.page.fill(this.passwordInput, password);
-    if (await this.page.locator(this.confirmPasswordInput).isVisible()) {
+    if (await this.page.locator(this.confirmPasswordInput).count() > 0) {
       await this.page.fill(this.confirmPasswordInput, confirmPassword);
     }
-    
-    if (acceptTerms && await this.page.locator(this.termsCheckbox).isVisible()) {
-      await this.page.check(this.termsCheckbox);
+
+    if (acceptTerms) {
+      const termsBox = this.page.locator(this.termsCheckbox);
+      if (await termsBox.count() > 0 && !(await termsBox.isChecked())) {
+        await termsBox.check();
+      }
     }
-    
+
     await this.page.click(this.registerButton);
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(2000);
   }
 
   async clickLogin() {
@@ -96,7 +111,7 @@ export class RegisterPage {
   }
 
   async verifyRegisterForm() {
-    await expect(this.page.locator(this.nameInput)).toBeVisible();
+    await expect(this.page.locator(this.firstNameInput)).toBeVisible();
     await expect(this.page.locator(this.emailInput)).toBeVisible();
     await expect(this.page.locator(this.passwordInput)).toBeVisible();
     await expect(this.page.locator(this.registerButton)).toBeVisible();
@@ -126,13 +141,14 @@ export class ForgotPasswordPage {
 
   async goto() {
     await this.page.goto('/forgot-password');
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForTimeout(500); // Wait for Alpine.js to initialize
   }
 
   async requestPasswordReset(email) {
     await this.page.fill(this.emailInput, email);
     await this.page.click(this.submitButton);
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForTimeout(3000); // Wait for Axios response
   }
 
   async verifySuccessMessage() {

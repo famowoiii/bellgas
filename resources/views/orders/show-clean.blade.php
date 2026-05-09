@@ -77,7 +77,7 @@
                         <div class="mt-4 md:mt-0 text-right">
                             <div class="text-3xl font-bold text-gray-800 mb-4">$<span id="orderTotal"></span></div>
                             <div class="space-y-2">
-                                <!-- Pay Now Button for UNPAID orders -->
+                                <!-- Pay Now Button for PENDING (unpaid) orders -->
                                 <button id="payNowBtn" onclick="payNow()" 
                                         class="bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition hidden">
                                     <i class="fas fa-credit-card mr-2"></i>Pay Now
@@ -281,7 +281,7 @@
             }
 
             if (paymentPendingBadge) {
-                if (newStatus === 'UNPAID') {
+                if (newStatus === 'PENDING') {
                     paymentPendingBadge.classList.remove('hidden');
                 } else {
                     paymentPendingBadge.classList.add('hidden');
@@ -310,7 +310,7 @@
             });
 
             // Show appropriate buttons based on status
-            if (status === 'UNPAID' && payNowBtn) {
+            if (status === 'PENDING' && payNowBtn) {
                 payNowBtn.classList.remove('hidden');
             }
 
@@ -322,7 +322,7 @@
                 reorderBtn.classList.remove('hidden');
             }
 
-            if (['UNPAID', 'PAID'].includes(status) && cancelBtn) {
+            if (['PENDING', 'PAID'].includes(status) && cancelBtn) {
                 cancelBtn.classList.remove('hidden');
             }
         }
@@ -342,12 +342,13 @@
         // Get status color
         function getStatusColor(status) {
             const colors = {
-                'UNPAID': 'bg-red-100 text-red-800',
+                'PENDING': 'bg-orange-100 text-orange-800',
                 'PAID': 'bg-blue-100 text-blue-800',
-                'PROCESSING': 'bg-yellow-100 text-yellow-800',
-                'READY_FOR_PICKUP': 'bg-purple-100 text-purple-800',
-                'SHIPPED': 'bg-purple-100 text-purple-800',
-                'DELIVERED': 'bg-green-100 text-green-800',
+                'PROCESSED': 'bg-yellow-100 text-yellow-800',
+                'WAITING_FOR_PICKUP': 'bg-purple-100 text-purple-800',
+                'PICKED_UP': 'bg-indigo-100 text-indigo-800',
+                'ON_DELIVERY': 'bg-purple-100 text-purple-800',
+                'DONE': 'bg-green-100 text-green-800',
                 'CANCELLED': 'bg-gray-100 text-gray-800'
             };
             return colors[status] || 'bg-gray-100 text-gray-800';
@@ -401,24 +402,24 @@
             document.getElementById('fulfillmentMethod').textContent = order.fulfillment_method || 'N/A';
 
             // Show confirmed badge for orders that have been processed by admin
-            if (['PROCESSING', 'READY_FOR_PICKUP', 'SHIPPED', 'DELIVERED'].includes(order.status)) {
+            if (['PROCESSED', 'WAITING_FOR_PICKUP', 'PICKED_UP', 'ON_DELIVERY', 'DONE'].includes(order.status)) {
                 document.getElementById('confirmedBadge').classList.remove('hidden');
             }
 
-            // Show payment pending badge and Pay Now button for UNPAID orders
-            if (order.status === 'UNPAID') {
+            // Show payment pending badge and Pay Now button for PENDING orders
+            if (order.status === 'PENDING') {
                 document.getElementById('paymentPendingBadge').classList.remove('hidden');
                 document.getElementById('payNowBtn').classList.remove('hidden');
             }
 
             // Show buttons based on status
-            if (['PAID', 'PROCESSING', 'DELIVERED'].includes(order.status)) {
+            if (['PAID', 'PROCESSED', 'DONE'].includes(order.status)) {
                 document.getElementById('downloadReceiptBtn').classList.remove('hidden');
             }
-            if (order.status === 'DELIVERED') {
+            if (order.status === 'DONE') {
                 document.getElementById('reorderBtn').classList.remove('hidden');
             }
-            if (['UNPAID', 'PAID'].includes(order.status)) {
+            if (['PENDING', 'PAID'].includes(order.status)) {
                 document.getElementById('cancelBtn').classList.remove('hidden');
             }
 

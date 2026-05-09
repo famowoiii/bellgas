@@ -28,8 +28,11 @@
 @endauth
     <title>@yield('title', 'BellGas - Premium LPG Services')</title>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Hide Alpine x-cloak elements until Alpine initializes -->
+    <style>[x-cloak] { display: none !important; }</style>
+
+    <!-- Tailwind CSS (local copy for reliability) -->
+    <script src="/js/tailwind.js"></script>
     <script>
         // Configure Tailwind
         tailwind.config = {
@@ -47,18 +50,18 @@
         }
     </script>
 
-    <!-- Font Awesome -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Font Awesome (local copy for reliability) -->
+    <link href="/css/font-awesome.min.css" rel="stylesheet">
 
-    <!-- Pusher and Laravel Echo for real-time notifications -->
-    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.3/dist/echo.iife.js"></script>
+    <!-- Pusher and Laravel Echo for real-time notifications (local copies) -->
+    <script src="/js/pusher.min.js"></script>
+    <script src="/js/echo.iife.js"></script>
 
-    <!-- Axios for HTTP requests -->
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Axios for HTTP requests (local copy) -->
+    <script src="/js/axios.min.js"></script>
 
-    <!-- Alpine.js -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js (local copy for reliability) -->
+    <script defer src="/js/alpine.min.js"></script>
 
     <!-- Ensure DOM is ready before Alpine starts -->
     <script>
@@ -97,7 +100,7 @@
                     }, 100);
 
                 } else {
-                    console.error('❌ NO VALID JWT TOKEN AVAILABLE');
+                    console.info('ℹ️ No JWT token available (guest user)');
                 }
             };
 
@@ -168,7 +171,7 @@
                         </button>
 
                         <!-- Bell Dropdown -->
-                        <div x-show="open" @click.away="open = false"
+                        <div x-cloak x-show="open" @click.away="open = false"
                              class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border py-2 z-50 max-h-96 overflow-y-auto">
                             <div class="px-4 py-2 border-b">
                                 <h4 class="font-semibold text-gray-800">New Order Notifications</h4>
@@ -207,7 +210,7 @@
                             <span x-text="user?.first_name"></span>
                             <i class="fas fa-chevron-down text-xs"></i>
                         </button>
-                        <div x-show="open" @click.away="open = false"
+                        <div x-cloak x-show="open" @click.away="open = false"
                             class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-2 z-10">
 
                             <!-- Admin Menu -->
@@ -356,7 +359,7 @@
     </footer>
 
     <!-- MODERN CART SIDEBAR -->
-    <div x-show="cartOpen"
+    <div x-cloak x-show="cartOpen"
          x-transition:enter="transition-all duration-300 ease-out"
          x-transition:enter-start="translate-x-full opacity-0"
          x-transition:enter-end="translate-x-0 opacity-100"
@@ -503,7 +506,7 @@
     </div>
 
     <!-- Cart Overlay -->
-    <div x-show="cartOpen" @click="cartOpen = false"
+    <div x-cloak x-show="cartOpen" @click="cartOpen = false"
          class="fixed inset-0 bg-black bg-opacity-50 z-40"></div>
 
     <!-- Audio element for notification sound -->

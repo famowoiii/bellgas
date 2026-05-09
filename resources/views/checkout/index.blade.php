@@ -287,8 +287,8 @@ console.log('🔐 Is authenticated:', window.isUserAuthenticated);
                                 <h4 class="font-medium text-blue-800">Existing Order</h4>
                                 <p class="text-sm text-blue-600" x-text="'#' + currentOrder?.order_number"></p>
                             </div>
-                            <span class="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded"
-                                  x-show="currentOrder?.status === 'UNPAID'">UNPAID</span>
+                            <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded"
+                                  x-show="currentOrder?.status === 'PENDING'">MENUNGGU PEMBAYARAN</span>
                         </div>
                     </div>
 
@@ -852,8 +852,8 @@ function checkoutPage() {
                         this.addressesLoading = false;
                     }
                     
-                    // Create payment intent for UNPAID orders
-                    if (this.currentOrder.status === 'UNPAID') {
+                    // Create payment intent for PENDING (unpaid) orders
+                    if (this.currentOrder.status === 'PENDING') {
                         await this.createPaymentIntentForExistingOrder();
                     }
                 } else {

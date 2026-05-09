@@ -142,8 +142,8 @@ Route::middleware(['jwt.auth'])->group(function () {
         Route::get('stats', [\App\Http\Controllers\Api\AdminStatsController::class, 'getStats']);
         Route::get('stats/orders', [\App\Http\Controllers\Api\AdminStatsController::class, 'getOrderStats']);
 
-        // Admin User Management (Only for ADMIN role)
-        Route::middleware('role:ADMIN')->group(function () {
+        // Admin User Management (accessible by both ADMIN and MERCHANT)
+        Route::middleware('role:ADMIN,MERCHANT')->group(function () {
             Route::get('users', [\App\Http\Controllers\Api\AdminUserController::class, 'index']);
             Route::post('users/admin', [\App\Http\Controllers\Api\AdminUserController::class, 'createAdmin']);
             Route::patch('users/{user}/status', [\App\Http\Controllers\Api\AdminUserController::class, 'updateStatus']);

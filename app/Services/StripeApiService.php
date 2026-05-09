@@ -89,14 +89,16 @@ class StripeApiService
         $ch = curl_init();
 
         // Basic cURL options
+        $caBundle = 'C:\\xampp\\php\\cacert.pem';
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 15, // Reduced from 30 to 15
-            CURLOPT_CONNECTTIMEOUT => 5, // Reduced from 10 to 5
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 5,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_CAINFO => file_exists($caBundle) ? $caBundle : null,
             CURLOPT_USERAGENT => 'BellGas-Laravel/1.0',
             CURLOPT_HTTPHEADER => [
                 'Authorization: Bearer ' . $this->apiKey,

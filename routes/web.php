@@ -33,6 +33,10 @@ Route::get('/forgot-password', function () {
     return view('auth.forgot-password');
 })->name('password.request');
 
+Route::get('/reset-password/{token}', function ($token) {
+    return view('auth.reset-password', ['token' => $token, 'email' => request('email')]);
+})->name('password.reset');
+
 // Product Routes
 Route::get('/products', function () {
     return view('products.beautiful');

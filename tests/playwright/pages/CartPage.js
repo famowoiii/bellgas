@@ -17,16 +17,25 @@ export class CartPage {
     this.shipping = '.shipping, [data-testid="shipping"]';
     this.total = '.total, [data-testid="total"]';
     this.checkoutButton = 'button:has-text("Checkout"), [data-testid="checkout"]';
-    this.continueShoppingButton = 'button:has-text("Continue Shopping"), [data-testid="continue-shopping"]';
+    this.continueShoppingButton = 'a:has-text("Continue Shopping"), button:has-text("Continue Shopping"), [data-testid="continue-shopping"]';
     this.clearCartButton = 'button:has-text("Clear Cart"), [data-testid="clear-cart"]';
-    this.emptyCartMessage = '.empty-cart, [data-testid="empty-cart"]';
+    this.emptyCartMessage = 'h3:has-text("Your cart is empty"), .empty-cart, [data-testid="empty-cart"]';
     this.couponInput = 'input[name="coupon"], [data-testid="coupon"]';
     this.applyCouponButton = 'button:has-text("Apply"), [data-testid="apply-coupon"]';
   }
 
   async goto() {
-    await this.page.goto('/cart');
-    await this.page.waitForLoadState('networkidle');
+    // Use domcontentloaded to avoid waiting for font/image resources
+    await this.page.goto('/cart', { waitUntil: 'domcontentloaded' });
+    // Wait for Alpine.js to initialize (x-show directives to be processed)
+    await this.page.waitForFunction(() => {
+      // Alpine has initialized when it processes x-show and sets display styles
+      const loadingEl = document.querySelector('[x-show="loading"]');
+      if (!loadingEl) return false; // Element should exist
+      // Alpine sets display:none when x-show is false
+      return loadingEl.style.display === 'none';
+    }, { timeout: 10000 }).catch(() => {});
+    await this.page.waitForTimeout(200);
   }
 
   async updateQuantity(itemIndex, quantity) {
@@ -73,7 +82,10 @@ export class CartPage {
   }
 
   async continueShopping() {
-    await this.page.click(this.continueShoppingButton);
+    // Wait for the first visible Continue Shopping button
+    const btn = this.page.locator(this.continueShoppingButton).first();
+    await btn.waitFor({ state: 'visible', timeout: 10000 });
+    await btn.click();
     await this.page.waitForURL('**/products**');
   }
 
@@ -95,7 +107,8 @@ export class CartPage {
   }
 
   async verifyEmptyCart() {
-    await expect(this.page.locator(this.emptyCartMessage)).toBeVisible();
+    // Use first() to avoid strict mode violation (also appears in cart sidebar)
+    await expect(this.page.locator(this.emptyCartMessage).first()).toBeVisible({ timeout: 10000 });
     await expect(this.page.locator(this.cartItems)).toHaveCount(0);
   }
 

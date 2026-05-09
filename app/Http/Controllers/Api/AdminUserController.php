@@ -16,9 +16,9 @@ class AdminUserController extends Controller
      */
     public function createAdmin(Request $request)
     {
-        // Ensure only admin can create other admins
+        // Ensure only admin/merchant can create other admins
         $currentUser = Auth::user();
-        if (!$currentUser || $currentUser->role !== 'ADMIN') {
+        if (!$currentUser || !in_array($currentUser->role, ['ADMIN', 'MERCHANT'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Only admins can create admin accounts.'
@@ -83,7 +83,7 @@ class AdminUserController extends Controller
     public function index()
     {
         $currentUser = Auth::user();
-        if (!$currentUser || $currentUser->role !== 'ADMIN') {
+        if (!$currentUser || !in_array($currentUser->role, ['ADMIN', 'MERCHANT'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -107,7 +107,7 @@ class AdminUserController extends Controller
     public function updateStatus(Request $request, User $user)
     {
         $currentUser = Auth::user();
-        if (!$currentUser || $currentUser->role !== 'ADMIN') {
+        if (!$currentUser || !in_array($currentUser->role, ['ADMIN', 'MERCHANT'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'

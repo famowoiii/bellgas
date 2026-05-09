@@ -3,7 +3,7 @@
 @section('title', 'Shopping Cart - BellGas')
 
 @section('content')
-<div class="container mx-auto px-4 py-8" x-data="cart()" x-init="init()">
+<div class="container mx-auto px-4 py-8" x-data="cartPage()" x-init="init()">
     <div class="max-w-4xl mx-auto">
         <!-- Header -->
         <div class="mb-8">
@@ -151,9 +151,9 @@
 
 @push('scripts')
 <script>
-function cart() {
+function cartPage() {
     return {
-        loading: true,
+        loading: false,
         updating: false,
         items: [],
         subtotal: 0,
@@ -186,18 +186,9 @@ function cart() {
                 const token = this.getAuthToken();
 
                 if (!token) {
-                    // Load guest cart from session/API if available
-                    try {
-                        const response = await axios.get('/api/cart');
-                        if (response.data.success) {
-                            this.items = response.data.data.items || [];
-                            this.subtotal = parseFloat(response.data.data.total || 0).toFixed(2);
-                        }
-                    } catch (error) {
-                        console.log('No guest cart available or API error');
-                        this.items = [];
-                        this.subtotal = 0;
-                    }
+                    // No auth token - guest users have empty cart
+                    this.items = [];
+                    this.subtotal = 0;
                     return;
                 }
 
